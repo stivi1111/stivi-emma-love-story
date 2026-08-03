@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Sparkles, Send, Trash2 } from 'lucide-react';
+import { Heart, Sparkles, Send, Trash2, Cloud, RefreshCw, Check } from 'lucide-react';
+import { pushToCloud, pullFromCloud } from '../utils/cloudSync';
 
 export default function LoveNotes() {
   const [notes, setNotes] = useState(() => {
@@ -9,12 +10,40 @@ export default function LoveNotes() {
 
   const [newAuthor, setNewAuthor] = useState('Stivi');
   const [newText, setNewText] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
 
   useEffect(() => {
     localStorage.setItem('stivi_emma_real_notes', JSON.stringify(notes));
   }, [notes]);
 
-  const handleAddNote = (e) => {
+  // Pull latest notes from cloud when component mounts
+  useEffect(() => {
+    const fetchCloudNotes = async () => {
+      const res = await pullFromCloud();
+      if (res.success && res.data && res.data.notes) {
+        setNotes(res.data.notes);
+      }
+    };
+    fetchCloudNotes();
+  }, []);
+
+  const handleSyncNow = async () => {
+    setIsSyncing(true);
+    setSyncStatus('Sincronizzazione in corso...');
+    const res = await pullFromCloud();
+    if (res.success && res.data && res.data.notes) {
+      setNotes(res.data.notes);
+      setSyncStatus('Sincronizzato col Cloud! ☁️✨');
+    } else {
+      await pushToCloud();
+      setSyncStatus('Inviato al Cloud! ☁️✨');
+    }
+    setIsSyncing(false);
+    setTimeout(() => setSyncStatus(''), 4000);
+  };
+
+  const handleAddNote = async (e) => {
     e.preventDefault();
     if (!newText.trim()) return;
 
@@ -25,12 +54,23 @@ export default function LoveNotes() {
       date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
     };
 
-    setNotes([noteObj, ...notes]);
+    const updatedNotes = [noteObj, ...notes];
+    setNotes(updatedNotes);
     setNewText('');
+
+    // Push to cloud instantly so PC, iPhone, and Android see it right away!
+    setIsSyncing(true);
+    await pushToCloud();
+    setIsSyncing(false);
+    setSyncStatus('Dedica salvata nel Cloud per PC e Cellulare! ☁️💖');
+    setTimeout(() => setSyncStatus(''), 4000);
   };
 
-  const deleteNote = (id) => {
-    setNotes(notes.filter(n => n.id !== id));
+  const deleteNote = async (id) => {
+    const updated = notes.filter(n => n.id !== id);
+    setNotes(updated);
+    localStorage.setItem('stivi_emma_real_notes', JSON.stringify(updated));
+    await pushToCloud();
   };
 
   return (
@@ -45,14 +85,44 @@ export default function LoveNotes() {
           fontSize: '0.9rem',
           marginBottom: '8px'
         }}>
-          <Sparkles size={16} /> I Vostri Pensieri Veri
+          <Sparkles size={16} /> I Vostri Pensieri Veri • Sincronizzati PC & Cellulare ☁️
         </div>
         <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>
           <span className="gradient-text font-serif">Note & Dediche d'Amore</span> <span className="emoji-color">💌💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
-          Scrivetevi messaggi e dediche reali da custodire sul vostro sito.
+          Scrivetevi messaggi e dediche reali: si sincronizzano automaticamente tra PC, iPhone ed Android!
         </p>
+
+        {/* Sync Status Button */}
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={handleSyncNow}
+            disabled={isSyncing}
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-light)',
+              color: 'var(--accent-rose)',
+              padding: '8px 20px',
+              borderRadius: 'var(--radius-full)',
+              cursor: 'pointer',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <Cloud size={16} className={isSyncing ? 'animate-spin' : ''} />
+            {isSyncing ? 'Sincronizzo...' : 'Sincronizza con il Cloud ☁️'}
+          </button>
+          {syncStatus && (
+            <span style={{ fontSize: '0.85rem', color: 'var(--accent-rose)', fontWeight: 600 }}>
+              {syncStatus}
+            </span>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -116,6 +186,7 @@ export default function LoveNotes() {
             />
             <button
               type="submit"
+              disabled={isSyncing}
               style={{
                 padding: '14px 28px',
                 borderRadius: 'var(--radius-sm)',
@@ -130,7 +201,7 @@ export default function LoveNotes() {
                 boxShadow: 'var(--shadow-glow)'
               }}
             >
-              <Send size={18} /> Invia Dedica
+              <Send size={18} /> Invia & Sincronizza ☁️
             </button>
           </div>
         </form>

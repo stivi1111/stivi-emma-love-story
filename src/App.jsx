@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import FloatingHearts from './components/FloatingHearts';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import LoveCounter from './components/LoveCounter';
@@ -11,22 +10,17 @@ import UpcomingCountdowns from './components/UpcomingCountdowns';
 import PhotoGallery from './components/PhotoGallery';
 import LoveNotes from './components/LoveNotes';
 import BucketList from './components/BucketList';
+import FloatingHearts from './components/FloatingHearts';
 import Footer from './components/Footer';
+import { pullFromCloud } from './utils/cloudSync';
 
 export default function App() {
-  // Theme toggle state
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('stivi_emma_theme') || 'light';
   });
 
-  // Anniversary / Start date state: default 27 Aprile 2023 (2023-04-27)
   const [startDate, setStartDate] = useState(() => {
-    const saved = localStorage.getItem('stivi_emma_start_date');
-    if (!saved || saved === '2024-02-14') {
-      localStorage.setItem('stivi_emma_start_date', '2023-04-27');
-      return '2023-04-27';
-    }
-    return saved;
+    return localStorage.getItem('stivi_emma_start_date') || '2023-04-27';
   });
 
   useEffect(() => {
@@ -38,22 +32,22 @@ export default function App() {
     localStorage.setItem('stivi_emma_start_date', startDate);
   }, [startDate]);
 
+  // Global Auto Cloud Pull on App Startup across PC & Mobile
+  useEffect(() => {
+    const syncOnStart = async () => {
+      await pullFromCloud();
+    };
+    syncOnStart();
+  }, []);
+
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
-      {/* Ambient Floating Hearts Background */}
+    <div style={{ minHeight: '100vh', position: 'relative', overflowX: 'hidden' }}>
       <FloatingHearts />
-
-      {/* Navigation Bar */}
-      <Navbar
-        theme={theme}
-        toggleTheme={toggleTheme}
-      />
-
-      {/* Main Content Sections */}
+      <Navbar theme={theme} toggleTheme={toggleTheme} />
       <main>
         <Hero startDate={startDate} setStartDate={setStartDate} />
         <LoveCounter startDate={startDate} />
@@ -66,8 +60,6 @@ export default function App() {
         <LoveNotes />
         <BucketList />
       </main>
-
-      {/* Footer */}
       <Footer />
     </div>
   );
