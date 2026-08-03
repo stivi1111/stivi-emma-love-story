@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Upload, Sparkles, X, Trash2, Cloud } from 'lucide-react';
+import { Heart, Upload, Sparkles, X, Trash2 } from 'lucide-react';
 import { saveAndSyncCloud } from '../utils/cloudSync';
 
 export default function PhotoGallery() {
@@ -13,8 +13,13 @@ export default function PhotoGallery() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('stivi_emma_real_photos', JSON.stringify(photos));
-  }, [photos]);
+    const handleCloudSynced = () => {
+      const saved = localStorage.getItem('stivi_emma_real_photos');
+      if (saved) setPhotos(JSON.parse(saved));
+    };
+    window.addEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+    return () => window.removeEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+  }, []);
 
   const toggleLike = async (photoId, e) => {
     if (e) e.stopPropagation();

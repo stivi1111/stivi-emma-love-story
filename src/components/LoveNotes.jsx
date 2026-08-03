@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Sparkles, Send, Trash2, Cloud, RefreshCw, Check } from 'lucide-react';
-import { pushToCloud, pullFromCloud } from '../utils/cloudSync';
+import { Heart, Sparkles, Send, Trash2, Cloud } from 'lucide-react';
+import { saveAndSyncCloud, pullFromCloud } from '../utils/cloudSync';
 
 export default function LoveNotes() {
   const [notes, setNotes] = useState(() => {
@@ -13,34 +13,29 @@ export default function LoveNotes() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
 
+  // Listen to live cloud sync events and update state immediately
   useEffect(() => {
-    localStorage.setItem('stivi_emma_real_notes', JSON.stringify(notes));
-  }, [notes]);
-
-  // Pull latest notes from cloud when component mounts
-  useEffect(() => {
-    const fetchCloudNotes = async () => {
-      const res = await pullFromCloud();
-      if (res.success && res.data && res.data.notes) {
-        setNotes(res.data.notes);
+    const handleCloudSynced = () => {
+      const saved = localStorage.getItem('stivi_emma_real_notes');
+      if (saved) {
+        setNotes(JSON.parse(saved));
       }
     };
-    fetchCloudNotes();
+
+    window.addEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+    return () => window.removeEventListener('stivi_emma_cloud_synced', handleCloudSynced);
   }, []);
 
   const handleSyncNow = async () => {
     setIsSyncing(true);
     setSyncStatus('Sincronizzazione in corso...');
     const res = await pullFromCloud();
-    if (res.success && res.data && res.data.notes) {
+    if (res.data && res.data.notes) {
       setNotes(res.data.notes);
       setSyncStatus('Sincronizzato col Cloud! ☁️✨');
-    } else {
-      await pushToCloud();
-      setSyncStatus('Inviato al Cloud! ☁️✨');
     }
     setIsSyncing(false);
-    setTimeout(() => setSyncStatus(''), 4000);
+    setTimeout(() => setSyncStatus(''), 3000);
   };
 
   const handleAddNote = async (e) => {
@@ -58,19 +53,17 @@ export default function LoveNotes() {
     setNotes(updatedNotes);
     setNewText('');
 
-    // Push to cloud instantly so PC, iPhone, and Android see it right away!
     setIsSyncing(true);
-    await pushToCloud();
+    await saveAndSyncCloud('stivi_emma_real_notes', updatedNotes);
     setIsSyncing(false);
-    setSyncStatus('Dedica salvata nel Cloud per PC e Cellulare! ☁️💖');
-    setTimeout(() => setSyncStatus(''), 4000);
+    setSyncStatus('Pubblicato & Sincronizzato! ☁️💖');
+    setTimeout(() => setSyncStatus(''), 3000);
   };
 
   const deleteNote = async (id) => {
     const updated = notes.filter(n => n.id !== id);
     setNotes(updated);
-    localStorage.setItem('stivi_emma_real_notes', JSON.stringify(updated));
-    await pushToCloud();
+    await saveAndSyncCloud('stivi_emma_real_notes', updated);
   };
 
   return (

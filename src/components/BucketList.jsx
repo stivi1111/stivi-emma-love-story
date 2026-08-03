@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { CheckCircle2, Circle, Plus, Sparkles, Trophy, Trash2 } from 'lucide-react';
-import { pushFullCloudPayload } from '../utils/cloudSync';
+import { saveAndSyncCloud } from '../utils/cloudSync';
 
 export default function BucketList() {
   const [items, setItems] = useState(() => {
@@ -12,8 +12,13 @@ export default function BucketList() {
   const [newItemText, setNewItemText] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('stivi_emma_real_bucketlist', JSON.stringify(items));
-  }, [items]);
+    const handleCloudSynced = () => {
+      const saved = localStorage.getItem('stivi_emma_real_bucketlist');
+      if (saved) setItems(JSON.parse(saved));
+    };
+    window.addEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+    return () => window.removeEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+  }, []);
 
   const toggleItem = async (id) => {
     const updated = items.map(item => {
@@ -33,16 +38,14 @@ export default function BucketList() {
     });
 
     setItems(updated);
-    localStorage.setItem('stivi_emma_real_bucketlist', JSON.stringify(updated));
-    await pushFullCloudPayload();
+    await saveAndSyncCloud('stivi_emma_real_bucketlist', updated);
   };
 
   const deleteItem = async (id, e) => {
     if (e) e.stopPropagation();
     const updated = items.filter(i => i.id !== id);
     setItems(updated);
-    localStorage.setItem('stivi_emma_real_bucketlist', JSON.stringify(updated));
-    await pushFullCloudPayload();
+    await saveAndSyncCloud('stivi_emma_real_bucketlist', updated);
   };
 
   const handleAddItem = async (e) => {
@@ -57,10 +60,9 @@ export default function BucketList() {
 
     const updated = [...items, newItem];
     setItems(updated);
-    localStorage.setItem('stivi_emma_real_bucketlist', JSON.stringify(updated));
     setNewItemText('');
 
-    await pushFullCloudPayload();
+    await saveAndSyncCloud('stivi_emma_real_bucketlist', updated);
   };
 
   const completedCount = items.filter(i => i.completed).length;
