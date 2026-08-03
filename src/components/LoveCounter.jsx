@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Clock, Award, Flame, Calendar } from 'lucide-react';
+import { Heart, Clock, Award, Flame } from 'lucide-react';
 
 export default function LoveCounter({ startDate }) {
   const [timeTogether, setTimeTogether] = useState({
@@ -41,8 +41,8 @@ export default function LoveCounter({ startDate }) {
       margin: '0 auto'
     }}>
       <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-        <h2 className="font-serif gradient-text" style={{ fontSize: '2.4rem', fontWeight: 700, marginBottom: '10px' }}>
-          Il Tempo del Nostro Amore ⏳💖
+        <h2 style={{ fontSize: '2.4rem', fontWeight: 700, marginBottom: '10px' }}>
+          <span className="gradient-text font-serif">Il Tempo del Nostro Amore</span> <span className="emoji-color">⏳💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
           Calcolato esattamente a partire dal <strong style={{ color: 'var(--accent-rose)' }}>{formattedStartDate}</strong>

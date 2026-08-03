@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Sparkles, RefreshCw, Utensils, Film, IceCream, Compass, Heart } from 'lucide-react';
+import { Sparkles, RefreshCw } from 'lucide-react';
 
 const DEFAULT_IDEAS = [
   { id: 1, text: 'Pizza & Serie TV 🍕🎬', icon: '🍕' },
@@ -14,7 +14,7 @@ const DEFAULT_IDEAS = [
 ];
 
 export default function DateWheel() {
-  const [ideas, setIdeas] = useState(DEFAULT_IDEAS);
+  const [ideas] = useState(DEFAULT_IDEAS);
   const [selectedIdea, setSelectedIdea] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
 
@@ -57,8 +57,8 @@ export default function DateWheel() {
         }}>
           <Sparkles size={16} /> Risolvi-Serata di Coppia
         </div>
-        <h2 className="font-serif gradient-text" style={{ fontSize: '2.5rem', fontWeight: 700 }}>
-          Cosa Facciamo Stasera? 🎡✨
+        <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>
+          <span className="gradient-text font-serif">Cosa Facciamo Stasera?</span> <span className="emoji-color">🎡✨</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
           Gira la ruota e lasciate che il destino scelga la vostra serata speciale!
@@ -85,14 +85,14 @@ export default function DateWheel() {
         }}>
           {selectedIdea ? (
             <div style={{ animation: isSpinning ? 'none' : 'pulseGlow 2s ease-in-out infinite' }}>
-              <div style={{ fontSize: '4rem', marginBottom: '12px' }}>{selectedIdea.icon}</div>
+              <div style={{ fontSize: '4rem', marginBottom: '12px' }} className="emoji-color">{selectedIdea.icon}</div>
               <h3 className="font-serif" style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-rose)' }}>
                 {selectedIdea.text}
               </h3>
             </div>
           ) : (
             <div>
-              <div style={{ fontSize: '3.5rem', marginBottom: '12px' }} className="animate-float">🎡</div>
+              <div style={{ fontSize: '3.5rem', marginBottom: '12px' }} className="animate-float emoji-color">🎡</div>
               <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>
                 Clicca sul pulsante qui sotto per girare la ruota delle idee!
               </p>

@@ -114,6 +114,15 @@ body {
   background: rgba(15, 10, 13, 0.88);
 }
 
+/* Fix emoji full-color rendering inside gradient text headings */
+.emoji-color {
+  -webkit-text-fill-color: initial !important;
+  color: initial !important;
+  background: none !important;
+  display: inline-block;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
 /* Typography Helpers */
 .font-serif {
   font-family: var(--font-serif);
