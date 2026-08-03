@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Upload, Sparkles, X, Trash2, Link as LinkIcon, Cloud } from 'lucide-react';
-import { saveAndSyncCloud, pullFromCloud, registerDeletedId } from '../utils/cloudSync';
+import { saveAndSyncCloud, pullFromCloud, setCloudLock } from '../utils/cloudSync';
 import { uploadImageToCloud } from '../utils/imageUploader';
 
 export default function PhotoGallery() {
@@ -44,7 +44,8 @@ export default function PhotoGallery() {
 
   const toggleLike = async (photoId, e) => {
     if (e) e.stopPropagation();
-    const updated = photos.map(p => {
+    const current = JSON.parse(localStorage.getItem('stivi_emma_real_photos') || '[]');
+    const updated = current.map(p => {
       if (p.id === photoId) {
         const isLiked = p.isLiked;
         return {
@@ -61,18 +62,21 @@ export default function PhotoGallery() {
 
   const deletePhoto = async (photoId, e) => {
     if (e) e.stopPropagation();
-    registerDeletedId(photoId);
-    const updated = photos.filter(p => p.id !== photoId);
+    setCloudLock(true);
+    const current = JSON.parse(localStorage.getItem('stivi_emma_real_photos') || '[]');
+    const updated = current.filter(p => p.id !== photoId);
     setPhotos(updated);
     if (activePhoto && activePhoto.id === photoId) {
       setActivePhoto(null);
     }
     await saveAndSyncCloud('stivi_emma_real_photos', updated);
+    setCloudLock(false);
   };
 
   const handleFileUpload = async (files) => {
     if (!files || files.length === 0) return;
 
+    setCloudLock(true);
     setIsSyncing(true);
     setSyncStatus('Caricamento foto sul Cloud CDN...');
     const fileList = Array.from(files);
@@ -82,34 +86,39 @@ export default function PhotoGallery() {
       if (!file.type.startsWith('image/')) continue;
       try {
         const cdnUrl = await uploadImageToCloud(file);
-        const newPhoto = {
-          id: 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-          title: file.name.replace(/\.[^/.]+$/, "") || 'Foto Stivi & Emma',
-          url: cdnUrl,
-          caption: 'La nostra foto reale 💖',
-          likes: 1,
-          isLiked: true
-        };
-        newPhotoItems.push(newPhoto);
+        if (cdnUrl) {
+          const newPhoto = {
+            id: 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            title: file.name.replace(/\.[^/.]+$/, "") || 'Foto Stivi & Emma',
+            url: cdnUrl,
+            caption: 'La nostra foto reale 💖',
+            likes: 1,
+            isLiked: true
+          };
+          newPhotoItems.push(newPhoto);
+        }
       } catch (err) {
         console.log('Image CDN upload error:', err);
       }
     }
 
     if (newPhotoItems.length > 0) {
-      const updatedPhotos = [...newPhotoItems, ...photos];
+      const currentStored = JSON.parse(localStorage.getItem('stivi_emma_real_photos') || '[]');
+      const updatedPhotos = [...newPhotoItems, ...currentStored];
       setPhotos(updatedPhotos);
       await saveAndSyncCloud('stivi_emma_real_photos', updatedPhotos);
       setSyncStatus('Foto Caricate & Sincronizzate! ☁️💖');
       setTimeout(() => setSyncStatus(''), 3000);
     }
     setIsSyncing(false);
+    setCloudLock(false);
   };
 
   const handleAddPhotoByUrl = async (e) => {
     e.preventDefault();
     if (!urlInput.trim()) return;
 
+    setCloudLock(true);
     const newPhoto = {
       id: 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       title: urlTitle.trim() || 'Foto Stivi & Emma',
@@ -119,7 +128,8 @@ export default function PhotoGallery() {
       isLiked: true
     };
 
-    const updatedPhotos = [newPhoto, ...photos];
+    const currentStored = JSON.parse(localStorage.getItem('stivi_emma_real_photos') || '[]');
+    const updatedPhotos = [newPhoto, ...currentStored];
     setPhotos(updatedPhotos);
     setUrlInput('');
     setUrlTitle('');
@@ -128,6 +138,7 @@ export default function PhotoGallery() {
     setIsSyncing(true);
     await saveAndSyncCloud('stivi_emma_real_photos', updatedPhotos);
     setIsSyncing(false);
+    setCloudLock(false);
     setSyncStatus('Foto Pubblicata e Sincronizzata! ☁️💖');
     setTimeout(() => setSyncStatus(''), 3000);
   };

@@ -1,8 +1,12 @@
-// Simple, Reliable Canonical Cloud Sync Engine for Stivi & Emma
+// Foolproof Realtime Cloud Sync Engine for Stivi & Emma
 
 const JSONBLOB_ENDPOINT = 'https://jsonblob.com/api/jsonBlob/019fc7a2-7eee-73b8-9f46-de2048252f0a';
 
-let isPushingCloud = false;
+export let isPushingCloud = false;
+
+export const setCloudLock = (locked) => {
+  isPushingCloud = locked;
+};
 
 export const getLocalPayload = () => {
   return {
@@ -20,6 +24,8 @@ export const getLocalPayload = () => {
 
 export const applyCloudPayload = (remoteData) => {
   if (!remoteData || typeof remoteData !== 'object') return false;
+  if (isPushingCloud) return false;
+
   let updated = false;
 
   const updateCollection = (key, storageKey) => {
@@ -89,7 +95,7 @@ export const pushFullCloudPayload = async (payload = getLocalPayload()) => {
     console.log('Cloud push error:', e);
     return false;
   } finally {
-    setTimeout(() => { isPushingCloud = false; }, 800);
+    setTimeout(() => { isPushingCloud = false; }, 1200);
   }
 };
 
@@ -123,12 +129,15 @@ export const pullFullCloudPayload = async () => {
 };
 
 export const saveAndSyncCloud = async (storageKey, value) => {
+  setCloudLock(true);
   if (typeof value === 'string') {
     localStorage.setItem(storageKey, value);
   } else {
     localStorage.setItem(storageKey, JSON.stringify(value));
   }
-  await pushFullCloudPayload();
+  const ok = await pushFullCloudPayload();
+  window.dispatchEvent(new Event('stivi_emma_cloud_synced'));
+  return ok;
 };
 
 export const pushToCloud = pushFullCloudPayload;
