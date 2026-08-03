@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MapPin, Calendar, Plus, X, Sparkles, Trash2 } from 'lucide-react';
-import { saveAndSyncCloud } from '../utils/cloudSync';
+import { Heart, MapPin, Calendar, Plus, X, Sparkles, Trash2, Cloud } from 'lucide-react';
+import { saveAndSyncCloud, pullFromCloud, registerDeletedId } from '../utils/cloudSync';
 
 export default function StoryTimeline() {
   const [timelineItems, setTimelineItems] = useState(() => {
@@ -10,6 +10,8 @@ export default function StoryTimeline() {
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
 
   const [newItem, setNewItem] = useState({
     title: '',
@@ -19,9 +21,29 @@ export default function StoryTimeline() {
     tag: 'Ricordo Reale'
   });
 
+  // Exact LoveNotes sync pattern
   useEffect(() => {
-    localStorage.setItem('stivi_emma_real_timeline', JSON.stringify(timelineItems));
-  }, [timelineItems]);
+    const handleCloudSynced = () => {
+      const saved = localStorage.getItem('stivi_emma_real_timeline');
+      if (saved) {
+        setTimelineItems(JSON.parse(saved));
+      }
+    };
+    window.addEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+    return () => window.removeEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+  }, []);
+
+  const handleSyncNow = async () => {
+    setIsSyncing(true);
+    setSyncStatus('Sincronizzazione ricordi in corso...');
+    const res = await pullFromCloud();
+    if (res.data && res.data.timeline) {
+      setTimelineItems(res.data.timeline);
+      setSyncStatus('Ricordi Sincronizzati! ☁️✨');
+    }
+    setIsSyncing(false);
+    setTimeout(() => setSyncStatus(''), 3000);
+  };
 
   const handleAddTimelineItem = async (e) => {
     e.preventDefault();
@@ -37,11 +59,16 @@ export default function StoryTimeline() {
     setNewItem({ title: '', date: '', location: '', description: '', tag: 'Ricordo Reale' });
     setShowAddModal(false);
 
+    setIsSyncing(true);
     await saveAndSyncCloud('stivi_emma_real_timeline', updated);
+    setIsSyncing(false);
+    setSyncStatus('Ricordo Salvato e Sincronizzato! ☁️💖');
+    setTimeout(() => setSyncStatus(''), 3000);
   };
 
   const deleteItem = async (id, e) => {
     if (e) e.stopPropagation();
+    registerDeletedId(id);
     const updated = timelineItems.filter(item => item.id !== id);
     setTimelineItems(updated);
     if (selectedItem && selectedItem.id === id) {
@@ -71,25 +98,54 @@ export default function StoryTimeline() {
           Inserisci le tappe ed i momenti reali: compaiono in automatico su tutti i dispositivi!
         </p>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          style={{
-            marginTop: '20px',
-            background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
-            color: '#ffffff',
-            border: 'none',
-            padding: '12px 28px',
-            borderRadius: 'var(--radius-full)',
-            cursor: 'pointer',
-            fontWeight: 700,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: 'var(--shadow-glow)'
-          }}
-        >
-          <Plus size={18} /> Inserisci una Tappa Reale ✍️
-        </button>
+        {/* Sync Status Button - Exact same as LoveNotes */}
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={handleSyncNow}
+            disabled={isSyncing}
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-light)',
+              color: 'var(--accent-rose)',
+              padding: '8px 20px',
+              borderRadius: 'var(--radius-full)',
+              cursor: 'pointer',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <Cloud size={16} className={isSyncing ? 'animate-spin' : ''} />
+            {isSyncing ? 'Sincronizzo Ricordi...' : 'Sincronizza Ricordi con il Cloud ☁️'}
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            style={{
+              background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
+              color: '#ffffff',
+              border: 'none',
+              padding: '8px 22px',
+              borderRadius: 'var(--radius-full)',
+              cursor: 'pointer',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: 'var(--shadow-glow)'
+            }}
+          >
+            <Plus size={16} /> Inserisci Tappa ✍️
+          </button>
+        </div>
+        {syncStatus && (
+          <div style={{ marginTop: '10px', fontSize: '0.88rem', color: 'var(--accent-rose)', fontWeight: 600 }}>
+            {syncStatus}
+          </div>
+        )}
       </div>
 
       {/* Timeline Stream */}

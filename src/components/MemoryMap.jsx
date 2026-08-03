@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Sparkles, X, Trash2, Navigation, ExternalLink, Search, LocateFixed, Map as MapIcon } from 'lucide-react';
-import { pushFullCloudPayload } from '../utils/cloudSync';
+import { MapPin, Plus, Heart, Sparkles, Navigation, Search, Trash2, Cloud } from 'lucide-react';
+import { saveAndSyncCloud, pullFromCloud, registerDeletedId } from '../utils/cloudSync';
 
 export default function MemoryMap() {
   const [places, setPlaces] = useState(() => {
@@ -8,147 +8,127 @@ export default function MemoryMap() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [suggestions, setSuggestions] = useState([]);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
 
-  const [newPlace, setNewPlace] = useState({
-    title: '',
-    cityName: '',
-    category: 'Primo Incontro',
-    note: '',
-    lat: 41.8902,
-    lon: 12.4922
-  });
+  const [newPlaceNotes, setNewPlaceNotes] = useState('');
+  const [newPlaceCategory, setNewPlaceCategory] = useState('Primo Incontro');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedSearchResult, setSelectedSearchResult] = useState(null);
+
+  // Exact LoveNotes sync pattern
+  useEffect(() => {
+    const handleCloudSynced = () => {
+      const saved = localStorage.getItem('stivi_emma_real_places');
+      if (saved) {
+        setPlaces(JSON.parse(saved));
+      }
+    };
+    window.addEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+    return () => window.removeEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+  }, []);
+
+  const handleSyncNow = async () => {
+    setIsSyncing(true);
+    setSyncStatus('Sincronizzazione luoghi in corso...');
+    const res = await pullFromCloud();
+    if (res.data && res.data.places) {
+      setPlaces(res.data.places);
+      setSyncStatus('Luoghi Sincronizzati! ☁️✨');
+    }
+    setIsSyncing(false);
+    setTimeout(() => setSyncStatus(''), 3000);
+  };
 
   useEffect(() => {
-    localStorage.setItem('stivi_emma_real_places', JSON.stringify(places));
+    if (places.length > 0 && !selectedPlace) {
+      setSelectedPlace(places[0]);
+    }
   }, [places]);
 
-  const handleCityInputChange = async (val) => {
-    setNewPlace(prev => ({ ...prev, cityName: val }));
-
-    if (val.trim().length < 3) {
-      setSuggestions([]);
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    if (!query.trim() || query.length < 2) {
+      setSearchResults([]);
       return;
     }
 
     setIsSearching(true);
     try {
-      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&limit=5`);
+      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=it`);
       const data = await res.json();
       if (data && data.features) {
-        const results = data.features.map(f => {
-          const p = f.properties;
-          const name = [p.name, p.street, p.city || p.town || p.county, p.country].filter(Boolean).join(', ');
-          return {
-            displayName: name,
-            shortName: p.name || val,
-            lat: f.geometry.coordinates[1],
-            lon: f.geometry.coordinates[0]
-          };
-        });
-        setSuggestions(results);
+        setSearchResults(data.features);
       }
     } catch (e) {
-      console.log('Search autocomplete error:', e);
+      console.log('Search error:', e);
     } finally {
       setIsSearching(false);
     }
   };
 
-  const selectSuggestion = (sugg) => {
-    setNewPlace(prev => ({
-      ...prev,
-      cityName: sugg.displayName,
-      title: prev.title || `Ricordo a ${sugg.shortName}`,
-      lat: sugg.lat,
-      lon: sugg.lon
-    }));
-    setSuggestions([]);
-  };
+  const handleSelectSearchResult = (feature) => {
+    const name = feature.properties.name || feature.properties.street || feature.properties.city || 'Luogo Speciale';
+    const city = feature.properties.city || feature.properties.state || feature.properties.country || '';
+    const lat = feature.geometry.coordinates[1];
+    const lon = feature.geometry.coordinates[0];
 
-  const useCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("La geolocalizzazione non è supportata dal tuo browser");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const { latitude, longitude } = pos.coords;
-      try {
-        const res = await fetch(`https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}`);
-        const data = await res.json();
-        let name = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-        let short = 'Posizione Attuale';
-        if (data && data.features && data.features.length > 0) {
-          const p = data.features[0].properties;
-          name = [p.name, p.street, p.city || p.town, p.country].filter(Boolean).join(', ');
-          short = p.city || p.name || 'Qui';
-        }
-        setNewPlace(prev => ({
-          ...prev,
-          cityName: name,
-          title: prev.title || `Posizione Attuale (${short})`,
-          lat: latitude,
-          lon: longitude
-        }));
-      } catch (e) {
-        setNewPlace(prev => ({
-          ...prev,
-          cityName: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-          title: prev.title || 'Posizione Attuale',
-          lat: latitude,
-          lon: longitude
-        }));
-      }
+    setSelectedSearchResult({
+      name: city ? `${name}, ${city}` : name,
+      lat,
+      lon
     });
+    setSearchResults([]);
+    setSearchQuery(city ? `${name}, ${city}` : name);
+    setShowAddForm(true);
   };
 
   const handleAddPlace = async (e) => {
     e.preventDefault();
-    if (!newPlace.title || !newPlace.cityName) return;
+    if (!selectedSearchResult) return;
 
-    const query = newPlace.cityName.trim();
-    const encodedQuery = encodeURIComponent(query);
-    const lat = newPlace.lat || 41.8902;
-    const lon = newPlace.lon || 12.4922;
-
-    const bbox = `${lon - 0.01}%2C${lat - 0.01}%2C${lon + 0.01}%2C${lat + 0.01}`;
-    const openStreetMapEmbed = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`;
-
-    const item = {
+    const newPlace = {
       id: Date.now(),
-      title: newPlace.title.trim(),
-      cityName: query,
-      category: newPlace.category,
-      note: newPlace.note.trim(),
-      lat,
-      lon,
-      mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`,
-      appleMapsUrl: `https://maps.apple.com/?q=${encodedQuery}`,
-      embedUrl: openStreetMapEmbed
+      name: selectedSearchResult.name,
+      lat: selectedSearchResult.lat,
+      lon: selectedSearchResult.lon,
+      category: newPlaceCategory,
+      notes: newPlaceNotes || 'Un posto unico nel nostro cuore ✨',
+      date: new Date().toLocaleDateString('it-IT', { month: 'short', year: 'numeric' })
     };
 
-    const updated = [item, ...places];
+    const updated = [newPlace, ...places];
     setPlaces(updated);
-    localStorage.setItem('stivi_emma_real_places', JSON.stringify(updated));
-    setNewPlace({ title: '', cityName: '', category: 'Primo Incontro', note: '', lat: 41.8902, lon: 12.4922 });
-    setSuggestions([]);
+    setSelectedPlace(newPlace);
+    setNewPlaceNotes('');
+    setSearchQuery('');
+    setSelectedSearchResult(null);
+    setShowAddForm(false);
 
-    // Push to cloud
-    await pushFullCloudPayload();
+    setIsSyncing(true);
+    await saveAndSyncCloud('stivi_emma_real_places', updated);
+    setIsSyncing(false);
+    setSyncStatus('Luogo Salvato e Sincronizzato! ☁️💖');
+    setTimeout(() => setSyncStatus(''), 3000);
   };
 
-  const deletePlace = async (id) => {
+  const deletePlace = async (id, e) => {
+    if (e) e.stopPropagation();
+    registerDeletedId(id);
     const updated = places.filter(p => p.id !== id);
     setPlaces(updated);
-    localStorage.setItem('stivi_emma_real_places', JSON.stringify(updated));
-    await pushFullCloudPayload();
+    if (selectedPlace && selectedPlace.id === id) {
+      setSelectedPlace(updated[0] || null);
+    }
+    await saveAndSyncCloud('stivi_emma_real_places', updated);
   };
 
   return (
-    <section id="memory-map" style={{ padding: '60px 20px', maxWidth: '1050px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-      {/* Header */}
+    <section id="map" style={{ padding: '60px 24px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <div style={{
           display: 'inline-flex',
@@ -159,350 +139,235 @@ export default function MemoryMap() {
           fontSize: '0.9rem',
           marginBottom: '8px'
         }}>
-          <Sparkles size={16} /> Mappa delle Emozioni & Mappe Sincronizzate
+          <Sparkles size={16} /> Ricerca Automatica & Mappa Reale Sincronizzata ☁️
         </div>
-        <h2 style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 700 }}>
+        <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>
           <span className="gradient-text font-serif">I Luoghi del Nostro Cuore</span> <span className="emoji-color">🗺️📍</span>
         </h2>
-        <p style={{ color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0' }}>
-          Mappa interattiva senza blocchi! Si sincronizza in automatico su PC, iPhone ed Android.
+        <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
+          Cerca qualsiasi luogo nel mondo: si aggiunge alla mappa e si sincronizza in tempo reale tra tutti i dispositivi!
         </p>
+
+        {/* Sync Status Button - Exact same as LoveNotes */}
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={handleSyncNow}
+            disabled={isSyncing}
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-light)',
+              color: 'var(--accent-rose)',
+              padding: '8px 20px',
+              borderRadius: 'var(--radius-full)',
+              cursor: 'pointer',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <Cloud size={16} className={isSyncing ? 'animate-spin' : ''} />
+            {isSyncing ? 'Sincronizzo Luoghi...' : 'Sincronizza Luoghi con il Cloud ☁️'}
+          </button>
+          {syncStatus && (
+            <span style={{ fontSize: '0.85rem', color: 'var(--accent-rose)', fontWeight: 600 }}>
+              {syncStatus}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Prominent Automatic Search Box */}
-      <div className="glass-card" style={{
-        maxWidth: '750px',
-        margin: '0 auto 40px',
-        padding: '28px',
-        boxSizing: 'border-box',
-        background: 'linear-gradient(135deg, var(--bg-card), rgba(255, 77, 109, 0.05))',
-        boxShadow: 'var(--shadow-md)'
-      }}>
-        <h3 className="font-serif" style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent-rose)', marginBottom: '4px' }}>
-          Cerca & Aggiungi Luogo Automatico <span className="emoji-color">🔍📍</span>
-        </h3>
-        <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '18px' }}>
-          Inizia a digitare il nome del luogo (es. Colosseo Roma, Duomo Milano) e seleziona la scelta!
-        </p>
+      {/* Prominent Automatic Place Search Box */}
+      <div className="glass-card" style={{ padding: '24px', marginBottom: '32px', position: 'relative' }}>
+        <h4 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Search size={20} color="var(--accent-blush)" /> Ricerca Automatica del Luogo 🔍
+        </h4>
 
-        <form onSubmit={handleAddPlace} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Autocomplete Input */}
-          <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Cerca Luogo o Indirizzo
-              </label>
-              <button
-                type="button"
-                onClick={useCurrentLocation}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--accent-blush)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <LocateFixed size={14} /> Usa mia posizione <span className="emoji-color">📍</span>
-              </button>
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            placeholder="Scrivi il nome di una città, ristorante, parco o via (es. Colosseo Roma, Firenze...)"
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '14px 18px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-light)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+              fontSize: '1rem',
+              boxSizing: 'border-box'
+            }}
+          />
+
+          {isSearching && (
+            <div style={{ position: 'absolute', right: '16px', top: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Ricerca...
             </div>
+          )}
 
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                placeholder="Digita es. 'Colosseo Roma', 'Duomo Milano'..."
-                value={newPlace.cityName}
-                onChange={(e) => handleCityInputChange(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  paddingRight: '40px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-light)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box'
-                }}
-              />
-              <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', right: '14px', top: '14px' }} />
-            </div>
-
-            {/* Suggestions Dropdown */}
-            {suggestions.length > 0 && (
-              <div className="glass-card" style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                background: 'var(--bg-card)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid var(--border-light)',
-                borderRadius: 'var(--radius-sm)',
-                marginTop: '6px',
-                boxShadow: 'var(--shadow-lg)',
-                zIndex: 10,
-                maxHeight: '200px',
-                overflowY: 'auto',
-                padding: '6px'
-              }}>
-                {suggestions.map((sugg, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => selectSuggestion(sugg)}
-                    style={{
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                      color: 'var(--text-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 77, 109, 0.12)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <MapPin size={16} color="var(--accent-rose)" />
-                    <span>{sugg.displayName}</span>
+          {searchResults.length > 0 && (
+            <div className="glass-card" style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              zIndex: 100,
+              marginTop: '6px',
+              background: 'var(--bg-card)',
+              boxShadow: 'var(--shadow-glow)',
+              maxHeight: '250px',
+              overflowY: 'auto'
+            }}>
+              {searchResults.map((res, i) => (
+                <div
+                  key={i}
+                  onClick={() => handleSelectSearchResult(res)}
+                  style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid var(--border-light)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}
+                >
+                  <MapPin size={16} color="var(--accent-rose)" />
+                  <div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                      {res.properties.name || res.properties.street || res.properties.city}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {[res.properties.city, res.properties.state, res.properties.country].filter(Boolean).join(', ')}
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            <div>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                Titolo Ricordo
-              </label>
-              <input
-                type="text"
-                placeholder="es. Dove ci siamo conosciuti"
-                value={newPlace.title}
-                onChange={(e) => setNewPlace({ ...newPlace, title: e.target.value })}
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-light)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  boxSizing: 'border-box'
-                }}
-              />
+        {/* Add Form */}
+        {showAddForm && selectedSearchResult && (
+          <form onSubmit={handleAddPlace} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ padding: '10px 14px', background: 'rgba(255, 77, 109, 0.1)', borderRadius: 'var(--radius-sm)', color: 'var(--accent-rose)', fontWeight: 600 }}>
+              📍 Luogo Selezionato: {selectedSearchResult.name}
             </div>
 
-            <div>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                Categoria
-              </label>
-              <select
-                value={newPlace.category}
-                onChange={(e) => setNewPlace({ ...newPlace, category: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-light)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="Primo Incontro">Primo Incontro</option>
-                <option value="Primo Bacio">Primo Bacio</option>
-                <option value="Primo Viaggio">Primo Viaggio</option>
-                <option value="Ristorante Preferito">Ristorante Preferito</option>
-                <option value="Posto del Cuore">Posto del Cuore</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <textarea
-              placeholder="Nota o dettaglio speciale sul posto (Opzionale)..."
-              value={newPlace.note}
-              onChange={(e) => setNewPlace({ ...newPlace, note: e.target.value })}
-              rows={2}
+            <select
+              value={newPlaceCategory}
+              onChange={(e) => setNewPlaceCategory(e.target.value)}
               style={{
-                width: '100%',
-                padding: '10px 16px',
+                padding: '12px',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border-light)',
                 background: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                resize: 'none',
-                boxSizing: 'border-box'
+                color: 'var(--text-primary)'
+              }}
+            >
+              <option value="Primo Incontro">Primo Incontro 💖</option>
+              <option value="Primo Bacio">Primo Bacio 💋</option>
+              <option value="Primo Viaggio">Primo Viaggio ✈️</option>
+              <option value="Posto del Cuore">Posto del Cuore ✨</option>
+              <option value="Ristorante Preferito">Ristorante Preferito 🍝</option>
+            </select>
+
+            <input
+              type="text"
+              placeholder="Aggiungi una nota o ricordo per questo posto..."
+              value={newPlaceNotes}
+              onChange={(e) => setNewPlaceNotes(e.target.value)}
+              style={{
+                padding: '12px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-light)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)'
               }}
             />
-          </div>
 
-          <button
-            type="submit"
-            style={{
-              padding: '14px',
-              borderRadius: 'var(--radius-full)',
-              border: 'none',
-              background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
-              color: '#ffffff',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: 'var(--shadow-glow)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
-          >
-            <Plus size={18} /> Salva & Sincronizza Luogo <span className="emoji-color">🗺️☁️</span>
-          </button>
-        </form>
+            <button
+              type="submit"
+              style={{
+                padding: '12px 24px',
+                borderRadius: 'var(--radius-full)',
+                border: 'none',
+                background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
+                color: '#ffffff',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <Plus size={18} /> Salva & Sincronizza Luogo sulla Mappa ☁️
+            </button>
+          </form>
+        )}
       </div>
 
-      {/* Places Stream Grid */}
-      {places.length === 0 ? (
-        <div className="glass-card" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', width: '100%', boxSizing: 'border-box' }}>
-          <MapPin size={42} color="var(--accent-rose)" style={{ margin: '0 auto 12px', display: 'block' }} />
-          <h4 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '6px' }}>Nessun luogo ancora inserito</h4>
-          <p style={{ fontSize: '0.95rem' }}>Digita nel riquadro in alto es. "Colosseo" o "Duomo" ed il sistema trovera automaticamente il posto per te!</p>
+      {/* Main Interactive Map & Places Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '28px' }}>
+        {/* Map Embed Frame */}
+        <div className="glass-card" style={{ height: '420px', padding: 0, overflow: 'hidden', position: 'relative' }}>
+          {selectedPlace ? (
+            <iframe
+              title="Interactive Map"
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              scrolling="no"
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${selectedPlace.lon - 0.02}%2C${selectedPlace.lat - 0.02}%2C${selectedPlace.lon + 0.02}%2C${selectedPlace.lat + 0.02}&layer=mapnik&marker=${selectedPlace.lat}%2C${selectedPlace.lon}`}
+              style={{ border: 0 }}
+            />
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+              Nessun luogo ancora selezionato
+            </div>
+          )}
         </div>
-      ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
-          gap: '24px',
-          width: '100%'
-        }}>
+
+        {/* Places List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '420px', overflowY: 'auto' }}>
           {places.map((place) => (
-            <div key={place.id} className="glass-card" style={{ overflow: 'hidden', position: 'relative', width: '100%', boxSizing: 'border-box' }}>
+            <div
+              key={place.id}
+              className="glass-card"
+              onClick={() => setSelectedPlace(place)}
+              style={{
+                padding: '16px 20px',
+                cursor: 'pointer',
+                borderLeft: selectedPlace?.id === place.id ? '4px solid var(--accent-blush)' : 'none',
+                position: 'relative'
+              }}
+            >
               <button
-                onClick={() => deletePlace(place.id)}
-                title="Elimina"
-                style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  backdropFilter: 'blur(4px)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '32px',
-                  height: '32px',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  zIndex: 3
-                }}
+                onClick={(e) => deletePlace(place.id, e)}
+                title="Elimina luogo"
+                style={{ position: 'absolute', top: '14px', right: '14px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
               >
                 <Trash2 size={16} />
               </button>
 
-              <div style={{ position: 'relative', width: '100%', height: '190px', background: '#e5e3df' }}>
-                <iframe
-                  title={place.title}
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  style={{ border: 0, width: '100%', height: '100%' }}
-                  src={place.embedUrl || `https://www.openstreetmap.org/export/embed.html?bbox=12.48%2C41.88%2C12.50%2C41.90&layer=mapnik&marker=41.8902%2C12.4922`}
-                  allowFullScreen
-                  loading="lazy"
-                />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <MapPin size={18} color="var(--accent-rose)" />
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{place.name}</h4>
               </div>
 
-              <div style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                  <span style={{
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    color: 'var(--accent-rose)',
-                    background: 'rgba(230, 57, 70, 0.1)',
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-full)'
-                  }}>
-                    {place.category}
-                  </span>
-                </div>
+              <span style={{ fontSize: '0.8rem', color: 'var(--accent-rose)', fontWeight: 600, display: 'inline-block', marginBottom: '6px' }}>
+                {place.category}
+              </span>
 
-                <h3 className="font-serif" style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                  {place.title}
-                </h3>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--accent-blush)', fontWeight: 600, marginBottom: '12px' }}>
-                  <Navigation size={14} /> {place.cityName}
-                </div>
-
-                {place.note && (
-                  <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '16px' }}>
-                    "{place.note}"
-                  </p>
-                )}
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <a
-                    href={place.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--bg-primary)',
-                      border: '1px solid var(--border-light)',
-                      color: 'var(--accent-rose)',
-                      textDecoration: 'none',
-                      fontWeight: 700,
-                      fontSize: '0.9rem',
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    <MapIcon size={16} /> Apri su Google Maps <span className="emoji-color">🗺️</span>
-                  </a>
-
-                  <a
-                    href={place.appleMapsUrl || `https://maps.apple.com/?q=${encodeURIComponent(place.cityName)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(0, 122, 255, 0.08)',
-                      border: '1px solid rgba(0, 122, 255, 0.2)',
-                      color: '#007aff',
-                      textDecoration: 'none',
-                      fontWeight: 700,
-                      fontSize: '0.9rem',
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    <ExternalLink size={16} /> Apri su Apple Maps (iPhone) <span className="emoji-color">🍎</span>
-                  </a>
-                </div>
-              </div>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{place.notes}</p>
             </div>
           ))}
         </div>
-      )}
+      </div>
     </section>
   );
 }

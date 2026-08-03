@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Upload, Sparkles, X, Trash2, Link as LinkIcon } from 'lucide-react';
-import { saveAndSyncCloud, registerDeletedId } from '../utils/cloudSync';
+import { Heart, Upload, Sparkles, X, Trash2, Link as LinkIcon, Cloud } from 'lucide-react';
+import { saveAndSyncCloud, pullFromCloud, registerDeletedId } from '../utils/cloudSync';
 import { compressImage } from '../utils/imageCompressor';
 
 export default function PhotoGallery() {
@@ -12,18 +12,35 @@ export default function PhotoGallery() {
   const [activePhoto, setActivePhoto] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [urlTitle, setUrlTitle] = useState('');
   const [showUrlModal, setShowUrlModal] = useState(false);
 
+  // Exact LoveNotes pattern: Listen to live cloud sync events and update state immediately
   useEffect(() => {
     const handleCloudSynced = () => {
       const saved = localStorage.getItem('stivi_emma_real_photos');
-      if (saved) setPhotos(JSON.parse(saved));
+      if (saved) {
+        setPhotos(JSON.parse(saved));
+      }
     };
+
     window.addEventListener('stivi_emma_cloud_synced', handleCloudSynced);
     return () => window.removeEventListener('stivi_emma_cloud_synced', handleCloudSynced);
   }, []);
+
+  const handleSyncNow = async () => {
+    setIsSyncing(true);
+    setSyncStatus('Sincronizzazione foto in corso...');
+    const res = await pullFromCloud();
+    if (res.data && res.data.photos) {
+      setPhotos(res.data.photos);
+      setSyncStatus('Foto Sincronizzate! ☁️✨');
+    }
+    setIsSyncing(false);
+    setTimeout(() => setSyncStatus(''), 3000);
+  };
 
   const toggleLike = async (photoId, e) => {
     if (e) e.stopPropagation();
@@ -57,6 +74,7 @@ export default function PhotoGallery() {
     if (!files || files.length === 0) return;
 
     setIsSyncing(true);
+    setSyncStatus('Ottimizzazione ed invio al Cloud...');
     const fileList = Array.from(files);
     const newPhotoItems = [];
 
@@ -82,6 +100,8 @@ export default function PhotoGallery() {
       const updatedPhotos = [...newPhotoItems, ...photos];
       setPhotos(updatedPhotos);
       await saveAndSyncCloud('stivi_emma_real_photos', updatedPhotos);
+      setSyncStatus('Foto Caricate e Sincronizzate! ☁️💖');
+      setTimeout(() => setSyncStatus(''), 3000);
     }
     setIsSyncing(false);
   };
@@ -105,7 +125,11 @@ export default function PhotoGallery() {
     setUrlTitle('');
     setShowUrlModal(false);
 
+    setIsSyncing(true);
     await saveAndSyncCloud('stivi_emma_real_photos', updatedPhotos);
+    setIsSyncing(false);
+    setSyncStatus('Foto Pubblicata e Sincronizzata! ☁️💖');
+    setTimeout(() => setSyncStatus(''), 3000);
   };
 
   return (
@@ -129,7 +153,29 @@ export default function PhotoGallery() {
           Carica le foto vere dal cellulare o dal PC: si ottimizzano e sincronizzano all'istante dappertutto!
         </p>
 
-        <div style={{ marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+        {/* Sync Status Button - Exact same as LoveNotes */}
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={handleSyncNow}
+            disabled={isSyncing}
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-light)',
+              color: 'var(--accent-rose)',
+              padding: '8px 20px',
+              borderRadius: 'var(--radius-full)',
+              cursor: 'pointer',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <Cloud size={16} className={isSyncing ? 'animate-spin' : ''} />
+            {isSyncing ? 'Sincronizzo Foto...' : 'Sincronizza Foto con il Cloud ☁️'}
+          </button>
           <button
             onClick={() => setShowUrlModal(true)}
             style={{
@@ -147,9 +193,14 @@ export default function PhotoGallery() {
               boxShadow: 'var(--shadow-sm)'
             }}
           >
-            <LinkIcon size={16} /> Aggiungi tramite Link Foto 🔗
+            <LinkIcon size={16} /> Link Foto 🔗
           </button>
         </div>
+        {syncStatus && (
+          <div style={{ marginTop: '10px', fontSize: '0.88rem', color: 'var(--accent-rose)', fontWeight: 600 }}>
+            {syncStatus}
+          </div>
+        )}
       </div>
 
       {/* Prominent Upload Drag & Drop Area */}
@@ -195,7 +246,7 @@ export default function PhotoGallery() {
           <Upload size={28} className={isSyncing ? 'animate-spin' : ''} />
         </div>
         <h4 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-          {isSyncing ? 'Ottimizzazione & Sincronizzazione Foto in corso...' : 'Carica foto da PC o Cellulare (Sincronizzate) ✨'}
+          {isSyncing ? 'Ottimizzazione & Sincronizzazione Foto in corso...' : 'Carica foto dal dispositivo (Sincronizzate) ✨'}
         </h4>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
           Trascina le foto qui o clicca per caricarle dal tuo dispositivo
