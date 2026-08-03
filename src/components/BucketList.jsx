@@ -55,7 +55,7 @@ export default function BucketList() {
   const progressPercent = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
 
   return (
-    <section id="bucketlist" style={{ padding: '60px 24px', maxWidth: '900px', margin: '0 auto' }}>
+    <section id="bucketlist" style={{ padding: '60px 20px', maxWidth: '900px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
       <div style={{ textAlign: 'center', marginBottom: '40px' }}>
         <div style={{
           display: 'inline-flex',
@@ -68,7 +68,7 @@ export default function BucketList() {
         }}>
           <Sparkles size={16} /> I Vostri Sogni Reali
         </div>
-        <h2 className="font-serif gradient-text" style={{ fontSize: '2.5rem', fontWeight: 700 }}>
+        <h2 className="font-serif gradient-text" style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 700 }}>
           Bucket List di Coppia ✈️💖
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
@@ -78,8 +78,8 @@ export default function BucketList() {
 
       {/* Progress Bar Card */}
       {items.length > 0 && (
-        <div className="glass-card" style={{ padding: '24px', marginBottom: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div className="glass-card" style={{ padding: '24px', marginBottom: '32px', width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <span style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Trophy size={20} color="var(--accent-gold)" /> Obiettivi Realizzati
             </span>
@@ -107,27 +107,43 @@ export default function BucketList() {
         </div>
       )}
 
-      {/* Add Item Form */}
-      <form onSubmit={handleAddItem} className="glass-card" style={{ padding: '20px', display: 'flex', gap: '12px', marginBottom: '28px' }}>
+      {/* Responsive Mobile-Optimized Add Item Form */}
+      <form
+        onSubmit={handleAddItem}
+        className="glass-card"
+        style={{
+          padding: '20px',
+          display: 'flex',
+          gap: '12px',
+          flexWrap: 'wrap',
+          marginBottom: '28px',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}
+      >
         <input
           type="text"
-          placeholder="Inserisci un sogno vero (es. Viaggio in Giappone, Volo in mongolfiera)..."
+          placeholder="Inserisci un sogno vero (es. Viaggio in Giappone)..."
           value={newItemText}
           onChange={(e) => setNewItemText(e.target.value)}
           style={{
-            flex: 1,
+            flex: '1 1 240px',
+            minWidth: 0,
+            width: '100%',
             padding: '12px 16px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-light)',
             background: 'var(--bg-primary)',
             color: 'var(--text-primary)',
-            fontSize: '1rem'
+            fontSize: '1rem',
+            boxSizing: 'border-box'
           }}
         />
         <button
           type="submit"
           style={{
-            padding: '12px 24px',
+            flex: '1 1 140px',
+            padding: '12px 20px',
             borderRadius: 'var(--radius-sm)',
             border: 'none',
             background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
@@ -136,7 +152,9 @@ export default function BucketList() {
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            justifyContent: 'center',
+            gap: '6px',
+            boxSizing: 'border-box'
           }}
         >
           <Plus size={18} /> Aggiungi Sogno
@@ -145,11 +163,11 @@ export default function BucketList() {
 
       {/* Checklist Stream */}
       {items.length === 0 ? (
-        <div className="glass-card" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div className="glass-card" style={{ padding: '30px 20px', textAlign: 'center', color: 'var(--text-muted)', width: '100%', boxSizing: 'border-box' }}>
           Nessun obiettivo inserito ancora. Aggiungete il vostro primo sogno di coppia qui sopra!
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
           {items.map((item) => (
             <div
               key={item.id}
@@ -161,11 +179,14 @@ export default function BucketList() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
-                opacity: item.completed ? 0.75 : 1
+                opacity: item.completed ? 0.75 : 1,
+                gap: '12px',
+                width: '100%',
+                boxSizing: 'border-box'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexShrink: 0 }}>
                   {item.completed ? (
                     <CheckCircle2 size={24} color="var(--accent-rose)" fill="rgba(230,57,70,0.15)" />
                   ) : (
@@ -173,10 +194,11 @@ export default function BucketList() {
                   )}
                 </button>
                 <span style={{
-                  fontSize: '1.05rem',
+                  fontSize: '1rem',
                   fontWeight: 500,
                   color: 'var(--text-primary)',
-                  textDecoration: item.completed ? 'line-through' : 'none'
+                  textDecoration: item.completed ? 'line-through' : 'none',
+                  wordBreak: 'break-word'
                 }}>
                   {item.text}
                 </span>
@@ -185,7 +207,7 @@ export default function BucketList() {
               <button
                 onClick={(e) => deleteItem(item.id, e)}
                 title="Elimina"
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}
               >
                 <Trash2 size={18} />
               </button>
