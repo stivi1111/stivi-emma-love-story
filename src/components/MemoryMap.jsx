@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Sparkles, X, Trash2, Navigation, ExternalLink, Map as MapIcon, Image as ImageIcon } from 'lucide-react';
+import { MapPin, Plus, Sparkles, X, Trash2, Navigation, ExternalLink, Search, LocateFixed, Check } from 'lucide-react';
 
 export default function MemoryMap() {
   const [places, setPlaces] = useState(() => {
@@ -8,24 +8,91 @@ export default function MemoryMap() {
   });
 
   const [showModal, setShowModal] = useState(false);
-  const [activeMapPlace, setActiveMapPlace] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const [newPlace, setNewPlace] = useState({
     title: '',
     cityName: '',
     category: 'Primo Incontro',
-    note: '',
-    photoUrl: ''
+    note: ''
   });
 
   useEffect(() => {
     localStorage.setItem('stivi_emma_real_places', JSON.stringify(places));
   }, [places]);
 
-  const getLocationPhoto = (locationQuery) => {
-    // Generate high quality location photo query URL from Unsplash Source
-    const cleanQuery = encodeURIComponent(locationQuery.trim() + ' landmark travel');
-    return `https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80`;
+  // Live Autocomplete search using Photon / Nominatim Geocoding API
+  const handleCityInputChange = async (val) => {
+    setNewPlace(prev => ({ ...prev, cityName: val }));
+
+    if (val.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&limit=5`);
+      const data = await res.json();
+      if (data && data.features) {
+        const results = data.features.map(f => {
+          const p = f.properties;
+          const name = [p.name, p.street, p.city || p.town || p.county, p.country].filter(Boolean).join(', ');
+          return {
+            displayName: name,
+            shortName: p.name || val,
+            lat: f.geometry.coordinates[1],
+            lon: f.geometry.coordinates[0]
+          };
+        });
+        setSuggestions(results);
+      }
+    } catch (e) {
+      console.log('Search autocomplete error:', e);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectSuggestion = (sugg) => {
+    setNewPlace(prev => ({
+      ...prev,
+      cityName: sugg.displayName,
+      title: prev.title || `Ricordo a ${sugg.shortName}`
+    }));
+    setSuggestions([]);
+  };
+
+  // Find Current GPS Location
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("La geolocalizzazione non è supportata dal tuo browser");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      try {
+        const res = await fetch(`https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}`);
+        const data = await res.json();
+        if (data && data.features && data.features.length > 0) {
+          const p = data.features[0].properties;
+          const name = [p.name, p.street, p.city || p.town, p.country].filter(Boolean).join(', ');
+          setNewPlace(prev => ({
+            ...prev,
+            cityName: name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+            title: prev.title || `Posizione Attuale (${p.city || 'Qui'})`
+          }));
+        }
+      } catch (e) {
+        setNewPlace(prev => ({
+          ...prev,
+          cityName: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+          title: prev.title || 'Posizione Attuale'
+        }));
+      }
+    });
   };
 
   const handleAddPlace = (e) => {
@@ -42,18 +109,17 @@ export default function MemoryMap() {
       category: newPlace.category,
       note: newPlace.note.trim(),
       mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`,
-      embedUrl: `https://maps.google.com/maps?q=${encodedQuery}&t=&z=14&ie=UTF8&iwloc=&output=embed`,
-      photoUrl: newPlace.photoUrl.trim() || `https://source.unsplash.com/featured/600x400/?${encodedQuery},city,travel`
+      embedUrl: `https://maps.google.com/maps?q=${encodedQuery}&t=&z=14&ie=UTF8&iwloc=&output=embed`
     };
 
     setPlaces([item, ...places]);
-    setNewPlace({ title: '', cityName: '', category: 'Primo Incontro', note: '', photoUrl: '' });
+    setNewPlace({ title: '', cityName: '', category: 'Primo Incontro', note: '' });
+    setSuggestions([]);
     setShowModal(false);
   };
 
   const deletePlace = (id) => {
     setPlaces(places.filter(p => p.id !== id));
-    if (activeMapPlace && activeMapPlace.id === id) setActiveMapPlace(null);
   };
 
   return (
@@ -68,13 +134,13 @@ export default function MemoryMap() {
           fontSize: '0.9rem',
           marginBottom: '8px'
         }}>
-          <Sparkles size={16} /> Mappa delle Emozioni & Google Maps
+          <Sparkles size={16} /> Ricerca Automatica dei Luoghi
         </div>
         <h2 className="font-serif gradient-text" style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 700 }}>
           I Luoghi del Nostro Cuore 🗺️📍
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0' }}>
-          Aggiungi un luogo con Google Maps per vedere la mappa interattiva e le foto della destinazione!
+          Digita poche lettere per trovare automaticamente qualsiasi posto o usa la tua posizione attuale!
         </p>
 
         <button
@@ -94,16 +160,16 @@ export default function MemoryMap() {
             boxShadow: 'var(--shadow-glow)'
           }}
         >
-          <Plus size={18} /> Aggiungi con Google Maps 🗺️
+          <Search size={18} /> Cerca & Aggiungi Luogo Automatico 🔍
         </button>
       </div>
 
-      {/* Places Grid */}
+      {/* Places Stream */}
       {places.length === 0 ? (
         <div className="glass-card" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', width: '100%', boxSizing: 'border-box' }}>
           <MapPin size={42} color="var(--accent-rose)" style={{ margin: '0 auto 12px', display: 'block' }} />
           <h4 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '6px' }}>Nessun luogo ancora inserito</h4>
-          <p style={{ fontSize: '0.95rem' }}>Clicca sul pulsante in alto per aggiungere un posto con Google Maps (es. Colosseo Roma, Ponte di Rialto Venezia, Torre Eiffel)!</p>
+          <p style={{ fontSize: '0.95rem' }}>Clicca sul pulsante in alto: digita es. "Colosseo" o "Duomo" ed il sistema trovera automaticamente il posto per te!</p>
         </div>
       ) : (
         <div style={{
@@ -114,7 +180,6 @@ export default function MemoryMap() {
         }}>
           {places.map((place) => (
             <div key={place.id} className="glass-card" style={{ overflow: 'hidden', position: 'relative', width: '100%', boxSizing: 'border-box' }}>
-              {/* Delete Button */}
               <button
                 onClick={() => deletePlace(place.id)}
                 title="Elimina"
@@ -139,7 +204,6 @@ export default function MemoryMap() {
                 <Trash2 size={16} />
               </button>
 
-              {/* Photo Preview / Google Map Embed Switch */}
               <div style={{ position: 'relative', width: '100%', height: '180px', background: '#e5e3df' }}>
                 <iframe
                   title={place.title}
@@ -182,7 +246,6 @@ export default function MemoryMap() {
                   </p>
                 )}
 
-                {/* Direct Google Maps Navigation Button */}
                 <a
                   href={place.mapsUrl}
                   target="_blank"
@@ -201,11 +264,10 @@ export default function MemoryMap() {
                     textDecoration: 'none',
                     fontWeight: 700,
                     fontSize: '0.9rem',
-                    boxSizing: 'border-box',
-                    transition: 'all 0.2s'
+                    boxSizing: 'border-box'
                   }}
                 >
-                  <ExternalLink size={16} /> Apri navigatore Google Maps 🗺️
+                  <ExternalLink size={16} /> Apri su Google Maps 🗺️
                 </a>
               </div>
             </div>
@@ -213,7 +275,7 @@ export default function MemoryMap() {
         </div>
       )}
 
-      {/* Add Place with Google Maps Modal */}
+      {/* Add Place Modal with Automatic Suggestions */}
       {showModal && (
         <div style={{
           position: 'fixed',
@@ -253,45 +315,113 @@ export default function MemoryMap() {
               <X size={24} />
             </button>
 
-            <h3 className="font-serif" style={{ fontSize: '1.6rem', marginBottom: '8px', color: 'var(--accent-rose)' }}>
-              Aggiungi Luogo con Google Maps 🗺️
+            <h3 className="font-serif" style={{ fontSize: '1.6rem', marginBottom: '6px', color: 'var(--accent-rose)' }}>
+              Cerca Luogo Automatico 🔍
             </h3>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              Inserisci la città, l'indirizzo o il monumento per generare la mappa interattiva!
+              Inizia a digitare il nome del posto e seleziona il suggerimento automatico!
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Autocomplete Input */}
+              <div style={{ position: 'relative' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Cerca Luogo o Indirizzo
+                  </label>
+                  <button
+                    type="button"
+                    onClick={useCurrentLocation}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-blush)',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <LocateFixed size={14} /> Usa mia posizione 📍
+                  </button>
+                </div>
+
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder="Digita es. 'Colosseo Roma', 'Duomo Milano'..."
+                    value={newPlace.cityName}
+                    onChange={(e) => handleCityInputChange(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      paddingRight: '40px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-light)',
+                      background: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '1rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', right: '14px', top: '14px' }} />
+                </div>
+
+                {/* Suggestions Dropdown */}
+                {suggestions.length > 0 && (
+                  <div className="glass-card" style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'var(--bg-card)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: 'var(--radius-sm)',
+                    marginTop: '6px',
+                    boxShadow: 'var(--shadow-lg)',
+                    zIndex: 10,
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    padding: '6px'
+                  }}>
+                    {suggestions.map((sugg, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => selectSuggestion(sugg)}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-primary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 77, 109, 0.12)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <MapPin size={16} color="var(--accent-rose)" />
+                        <span>{sugg.displayName}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Titolo del Ricordo
                 </label>
                 <input
                   type="text"
-                  placeholder="es. Dove ci siamo dati il primo bacio 💋"
+                  placeholder="es. Dove ci siamo conosciuti"
                   value={newPlace.title}
                   onChange={(e) => setNewPlace({ ...newPlace, title: e.target.value })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-light)',
-                    background: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                  Indirizzo / Luogo su Google Maps
-                </label>
-                <input
-                  type="text"
-                  placeholder="es. Fontana di Trevi, Roma oppure Ristorante Il Faro, Napoli"
-                  value={newPlace.cityName}
-                  onChange={(e) => setNewPlace({ ...newPlace, cityName: e.target.value })}
                   required
                   style={{
                     width: '100%',
@@ -333,10 +463,10 @@ export default function MemoryMap() {
 
               <div>
                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                  Nota o Ricordo Speciale (Opzionale)
+                  Nota o Dettagli (Opzionale)
                 </label>
                 <textarea
-                  placeholder="Cosa rende speciale questo luogo per te ed Emma?"
+                  placeholder="Scrivi qualcosa di bello su questo posto..."
                   value={newPlace.note}
                   onChange={(e) => setNewPlace({ ...newPlace, note: e.target.value })}
                   rows={3}
@@ -367,7 +497,7 @@ export default function MemoryMap() {
                   boxShadow: 'var(--shadow-glow)'
                 }}
               >
-                Salva Luogo con Google Maps 🗺️
+                Salva Luogo Automatico 🗺️
               </button>
             </div>
           </form>
