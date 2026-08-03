@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Upload, Sparkles, X, Trash2 } from 'lucide-react';
+import { Heart, Upload, Sparkles, X, Trash2, Link as LinkIcon, Plus } from 'lucide-react';
 import { saveAndSyncCloud } from '../utils/cloudSync';
+import { compressImage } from '../utils/imageCompressor';
 
 export default function PhotoGallery() {
   const [photos, setPhotos] = useState(() => {
@@ -11,6 +12,9 @@ export default function PhotoGallery() {
   const [activePhoto, setActivePhoto] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [urlTitle, setUrlTitle] = useState('');
+  const [showUrlModal, setShowUrlModal] = useState(false);
 
   useEffect(() => {
     const handleCloudSynced = () => {
@@ -48,39 +52,59 @@ export default function PhotoGallery() {
     await saveAndSyncCloud('stivi_emma_real_photos', updated);
   };
 
-  const handleFileUpload = (files) => {
+  const handleFileUpload = async (files) => {
     if (!files || files.length === 0) return;
 
     setIsSyncing(true);
-    let processed = 0;
     const fileList = Array.from(files);
+    const newPhotoItems = [];
 
-    fileList.forEach((file) => {
-      if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = async (e) => {
+    for (const file of fileList) {
+      if (!file.type.startsWith('image/')) continue;
+      try {
+        const compressedUrl = await compressImage(file);
         const newPhoto = {
-          id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 4),
+          id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 5),
           title: file.name.replace(/\.[^/.]+$/, "") || 'Foto Stivi & Emma',
-          url: e.target.result,
+          url: compressedUrl,
           caption: 'La nostra foto reale 💖',
           likes: 1,
           isLiked: true
         };
+        newPhotoItems.push(newPhoto);
+      } catch (err) {
+        console.log('Image compression error:', err);
+      }
+    }
 
-        setPhotos(prev => {
-          const nextPhotos = [newPhoto, ...prev];
-          saveAndSyncCloud('stivi_emma_real_photos', nextPhotos);
-          return nextPhotos;
-        });
+    if (newPhotoItems.length > 0) {
+      const updatedPhotos = [...newPhotoItems, ...photos];
+      setPhotos(updatedPhotos);
+      await saveAndSyncCloud('stivi_emma_real_photos', updatedPhotos);
+    }
+    setIsSyncing(false);
+  };
 
-        processed++;
-        if (processed >= fileList.length) {
-          setIsSyncing(false);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+  const handleAddPhotoByUrl = async (e) => {
+    e.preventDefault();
+    if (!urlInput.trim()) return;
+
+    const newPhoto = {
+      id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 5),
+      title: urlTitle.trim() || 'Foto Stivi & Emma',
+      url: urlInput.trim(),
+      caption: 'La nostra foto reale 💖',
+      likes: 1,
+      isLiked: true
+    };
+
+    const updatedPhotos = [newPhoto, ...photos];
+    setPhotos(updatedPhotos);
+    setUrlInput('');
+    setUrlTitle('');
+    setShowUrlModal(false);
+
+    await saveAndSyncCloud('stivi_emma_real_photos', updatedPhotos);
   };
 
   return (
@@ -101,8 +125,30 @@ export default function PhotoGallery() {
           <span className="gradient-text font-serif">Galleria Fotografica</span> <span className="emoji-color">📸💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0' }}>
-          Trascina o carica le foto: compaiono in automatico ed all'istante su PC, iPhone ed Android!
+          Carica le foto vere dal cellulare o dal PC: si ottimizzano e sincronizzano all'istante dappertutto!
         </p>
+
+        <div style={{ marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <button
+            onClick={() => setShowUrlModal(true)}
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-light)',
+              color: 'var(--accent-rose)',
+              padding: '8px 20px',
+              borderRadius: 'var(--radius-full)',
+              cursor: 'pointer',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <LinkIcon size={16} /> Aggiungi tramite Link Foto 🔗
+          </button>
+        </div>
       </div>
 
       {/* Prominent Upload Drag & Drop Area */}
@@ -148,10 +194,10 @@ export default function PhotoGallery() {
           <Upload size={28} className={isSyncing ? 'animate-spin' : ''} />
         </div>
         <h4 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-          {isSyncing ? 'Caricamento & Sincronizzazione Cloud in corso...' : 'Carica foto da PC o Cellulare (Sincronizzate) ✨'}
+          {isSyncing ? 'Ottimizzazione & Sincronizzazione Foto in corso...' : 'Carica foto da PC o Cellulare (Sincronizzate) ✨'}
         </h4>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
-          Trascina le foto qui o clicca per caricarle dal dispositivo
+          Trascina le foto qui o clicca per caricarle dal tuo dispositivo
         </p>
       </div>
 
@@ -242,6 +288,96 @@ export default function PhotoGallery() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Add Photo by URL Modal */}
+      {showUrlModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 200,
+          padding: '20px'
+        }}>
+          <form onSubmit={handleAddPhotoByUrl} className="glass-card" style={{
+            maxWidth: '480px',
+            width: '100%',
+            padding: '28px',
+            position: 'relative',
+            background: 'var(--bg-card)'
+          }}>
+            <button
+              type="button"
+              onClick={() => setShowUrlModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer'
+              }}
+            >
+              <X size={24} />
+            </button>
+
+            <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '16px', color: 'var(--accent-rose)' }}>
+              Aggiungi Foto via URL Link 🔗
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <input
+                type="text"
+                placeholder="Titolo della foto (es. Tramonto al mare)"
+                value={urlTitle}
+                onChange={(e) => setUrlTitle(e.target.value)}
+                style={{
+                  padding: '12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-light)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)'
+                }}
+              />
+              <input
+                type="url"
+                placeholder="Incolla l'indirizzo web dell'immagine (http/https)..."
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                required
+                style={{
+                  padding: '12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-light)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)'
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  padding: '12px',
+                  borderRadius: 'var(--radius-full)',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Salva & Sincronizza Foto ☁️
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
