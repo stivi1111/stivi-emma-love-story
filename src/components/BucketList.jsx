@@ -1,0 +1,198 @@
+import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
+import { CheckCircle2, Circle, Plus, Sparkles, Trophy, Trash2 } from 'lucide-react';
+
+export default function BucketList() {
+  const [items, setItems] = useState(() => {
+    const saved = localStorage.getItem('stivi_emma_real_bucketlist');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [newItemText, setNewItemText] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('stivi_emma_real_bucketlist', JSON.stringify(items));
+  }, [items]);
+
+  const toggleItem = (id) => {
+    setItems(items.map(item => {
+      if (item.id === id) {
+        const nextState = !item.completed;
+        if (nextState) {
+          confetti({
+            particleCount: 60,
+            spread: 70,
+            origin: { y: 0.7 },
+            colors: ['#ff4d6d', '#d4af37', '#ffffff']
+          });
+        }
+        return { ...item, completed: nextState };
+      }
+      return item;
+    }));
+  };
+
+  const deleteItem = (id, e) => {
+    if (e) e.stopPropagation();
+    setItems(items.filter(i => i.id !== id));
+  };
+
+  const handleAddItem = (e) => {
+    e.preventDefault();
+    if (!newItemText.trim()) return;
+
+    const newItem = {
+      id: Date.now(),
+      text: newItemText.trim(),
+      completed: false
+    };
+
+    setItems([...items, newItem]);
+    setNewItemText('');
+  };
+
+  const completedCount = items.filter(i => i.completed).length;
+  const progressPercent = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
+
+  return (
+    <section id="bucketlist" style={{ padding: '60px 24px', maxWidth: '900px', margin: '0 auto' }}>
+      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          color: 'var(--accent-blush)',
+          fontWeight: 600,
+          fontSize: '0.9rem',
+          marginBottom: '8px'
+        }}>
+          <Sparkles size={16} /> I Vostri Sogni Reali
+        </div>
+        <h2 className="font-serif gradient-text" style={{ fontSize: '2.5rem', fontWeight: 700 }}>
+          Bucket List di Coppia ✈️💖
+        </h2>
+        <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
+          Inserite tutte le avventure e le esperienze reali che volete realizzare insieme.
+        </p>
+      </div>
+
+      {/* Progress Bar Card */}
+      {items.length > 0 && (
+        <div className="glass-card" style={{ padding: '24px', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Trophy size={20} color="var(--accent-gold)" /> Obiettivi Realizzati
+            </span>
+            <span style={{ fontWeight: 700, color: 'var(--accent-rose)', fontSize: '1.1rem' }}>
+              {completedCount} su {items.length} ({progressPercent}%)
+            </span>
+          </div>
+
+          <div style={{
+            width: '100%',
+            height: '14px',
+            background: 'var(--bg-primary)',
+            borderRadius: 'var(--radius-full)',
+            overflow: 'hidden',
+            border: '1px solid var(--border-light)'
+          }}>
+            <div style={{
+              width: `${progressPercent}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, var(--accent-blush), var(--accent-rose), var(--accent-gold))',
+              borderRadius: 'var(--radius-full)',
+              transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+            }} />
+          </div>
+        </div>
+      )}
+
+      {/* Add Item Form */}
+      <form onSubmit={handleAddItem} className="glass-card" style={{ padding: '20px', display: 'flex', gap: '12px', marginBottom: '28px' }}>
+        <input
+          type="text"
+          placeholder="Inserisci un sogno vero (es. Viaggio in Giappone, Volo in mongolfiera)..."
+          value={newItemText}
+          onChange={(e) => setNewItemText(e.target.value)}
+          style={{
+            flex: 1,
+            padding: '12px 16px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-light)',
+            background: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+            fontSize: '1rem'
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: '12px 24px',
+            borderRadius: 'var(--radius-sm)',
+            border: 'none',
+            background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
+            color: '#ffffff',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <Plus size={18} /> Aggiungi Sogno
+        </button>
+      </form>
+
+      {/* Checklist Stream */}
+      {items.length === 0 ? (
+        <div className="glass-card" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          Nessun obiettivo inserito ancora. Aggiungete il vostro primo sogno di coppia qui sopra!
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="glass-card"
+              onClick={() => toggleItem(item.id)}
+              style={{
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                opacity: item.completed ? 0.75 : 1
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                  {item.completed ? (
+                    <CheckCircle2 size={24} color="var(--accent-rose)" fill="rgba(230,57,70,0.15)" />
+                  ) : (
+                    <Circle size={24} color="var(--text-muted)" />
+                  )}
+                </button>
+                <span style={{
+                  fontSize: '1.05rem',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  textDecoration: item.completed ? 'line-through' : 'none'
+                }}>
+                  {item.text}
+                </span>
+              </div>
+
+              <button
+                onClick={(e) => deleteItem(item.id, e)}
+                title="Elimina"
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
