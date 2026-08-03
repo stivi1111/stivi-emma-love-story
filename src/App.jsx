@@ -34,14 +34,20 @@ export default function App() {
     localStorage.setItem('stivi_emma_start_date', startDate);
   }, [startDate]);
 
-  // Global Automatic Realtime Cloud Sync across PC, iPhone & Android (Polls every 4s)
+  // Zero-Cache Realtime Cloud Sync across PC, iPhone & Android (Polls every 2.5s + on Tab Focus)
   useEffect(() => {
     const handleSync = async () => {
       await pullFullCloudPayload();
     };
 
     handleSync();
-    const interval = setInterval(handleSync, 4000);
+    const interval = setInterval(handleSync, 2500);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleSync();
+      }
+    };
 
     const handleCloudEvent = () => {
       setSyncVersion(v => v + 1);
@@ -50,10 +56,12 @@ export default function App() {
     };
 
     window.addEventListener('stivi_emma_cloud_synced', handleCloudEvent);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('stivi_emma_cloud_synced', handleCloudEvent);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

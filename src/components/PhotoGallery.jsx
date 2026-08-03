@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Upload, Sparkles, X, Trash2 } from 'lucide-react';
+import { Heart, Upload, Sparkles, X, Trash2, Cloud } from 'lucide-react';
+import { saveAndSyncCloud } from '../utils/cloudSync';
 
 export default function PhotoGallery() {
   const [photos, setPhotos] = useState(() => {
@@ -9,14 +10,15 @@ export default function PhotoGallery() {
 
   const [activePhoto, setActivePhoto] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('stivi_emma_real_photos', JSON.stringify(photos));
   }, [photos]);
 
-  const toggleLike = (photoId, e) => {
+  const toggleLike = async (photoId, e) => {
     if (e) e.stopPropagation();
-    setPhotos(photos.map(p => {
+    const updated = photos.map(p => {
       if (p.id === photoId) {
         const isLiked = p.isLiked;
         return {
@@ -26,24 +28,32 @@ export default function PhotoGallery() {
         };
       }
       return p;
-    }));
+    });
+    setPhotos(updated);
+    await saveAndSyncCloud('stivi_emma_real_photos', updated);
   };
 
-  const deletePhoto = (photoId, e) => {
+  const deletePhoto = async (photoId, e) => {
     if (e) e.stopPropagation();
-    setPhotos(photos.filter(p => p.id !== photoId));
+    const updated = photos.filter(p => p.id !== photoId);
+    setPhotos(updated);
     if (activePhoto && activePhoto.id === photoId) {
       setActivePhoto(null);
     }
+    await saveAndSyncCloud('stivi_emma_real_photos', updated);
   };
 
   const handleFileUpload = (files) => {
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach((file) => {
+    setIsSyncing(true);
+    let processed = 0;
+    const fileList = Array.from(files);
+
+    fileList.forEach((file) => {
       if (!file.type.startsWith('image/')) return;
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const newPhoto = {
           id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 4),
           title: file.name.replace(/\.[^/.]+$/, "") || 'Foto Stivi & Emma',
@@ -52,7 +62,17 @@ export default function PhotoGallery() {
           likes: 1,
           isLiked: true
         };
-        setPhotos(prev => [newPhoto, ...prev]);
+
+        setPhotos(prev => {
+          const nextPhotos = [newPhoto, ...prev];
+          saveAndSyncCloud('stivi_emma_real_photos', nextPhotos);
+          return nextPhotos;
+        });
+
+        processed++;
+        if (processed >= fileList.length) {
+          setIsSyncing(false);
+        }
       };
       reader.readAsDataURL(file);
     });
@@ -70,13 +90,13 @@ export default function PhotoGallery() {
           fontSize: '0.9rem',
           marginBottom: '8px'
         }}>
-          <Sparkles size={16} /> Le Vostre Foto Reali
+          <Sparkles size={16} /> Le Vostre Foto Reali Sincronizzate ☁️
         </div>
         <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>
           <span className="gradient-text font-serif">Galleria Fotografica</span> <span className="emoji-color">📸💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0' }}>
-          Trascina o carica le vostre foto direttamente dal tuo dispositivo per creare l'album reale di Stivi ed Emma!
+          Trascina o carica le foto: compaiono in automatico ed all'istante su PC, iPhone ed Android!
         </p>
       </div>
 
@@ -120,13 +140,13 @@ export default function PhotoGallery() {
           color: 'var(--accent-rose)',
           marginBottom: '14px'
         }}>
-          <Upload size={28} />
+          <Upload size={28} className={isSyncing ? 'animate-spin' : ''} />
         </div>
         <h4 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-          Carica qui le foto vere di Stivi & Emma <span className="emoji-color">✨</span>
+          {isSyncing ? 'Caricamento & Sincronizzazione Cloud in corso...' : 'Carica foto da PC o Cellulare (Sincronizzate) ✨'}
         </h4>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
-          Trascina le foto qui o clicca per sfogliare i file dal tuo computer
+          Trascina le foto qui o clicca per caricarle dal dispositivo
         </p>
       </div>
 

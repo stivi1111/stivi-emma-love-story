@@ -1,4 +1,4 @@
-// Complete Real-Time Full-Site Cloud Synchronization Engine for Stivi & Emma
+// Zero-Cache Instant Full-Site Cloud Sync Engine for Stivi & Emma
 
 const BACKUP_ENDPOINT = 'https://kvdb.io/stivi_emma_love_db_2023/full_backup';
 
@@ -54,13 +54,14 @@ export const applyCloudPayload = (data) => {
   return updated;
 };
 
-// Push local changes to the cloud
+// Push local changes to cloud (Zero-Cache)
 export const pushFullCloudPayload = async (payload = getLocalPayload()) => {
   try {
-    const res = await fetch(BACKUP_ENDPOINT, {
+    const res = await fetch(`${BACKUP_ENDPOINT}?t=${Date.now()}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      cache: 'no-store'
     });
     return res.ok;
   } catch (e) {
@@ -69,10 +70,13 @@ export const pushFullCloudPayload = async (payload = getLocalPayload()) => {
   }
 };
 
-// Pull cloud changes to PC / Mobile
+// Pull cloud changes to PC / Mobile (Zero-Cache)
 export const pullFullCloudPayload = async () => {
   try {
-    const res = await fetch(BACKUP_ENDPOINT);
+    const res = await fetch(`${BACKUP_ENDPOINT}?t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+    });
     if (res.ok) {
       const data = await res.json();
       if (data && typeof data === 'object') {
@@ -86,6 +90,15 @@ export const pullFullCloudPayload = async () => {
   return { success: false, hasChanges: false };
 };
 
-// Convenient exports
+// Central helper to update local storage AND push to cloud in 1 line
+export const saveAndSyncCloud = async (storageKey, value) => {
+  if (typeof value === 'string') {
+    localStorage.setItem(storageKey, value);
+  } else {
+    localStorage.setItem(storageKey, JSON.stringify(value));
+  }
+  await pushFullCloudPayload();
+};
+
 export const pushToCloud = pushFullCloudPayload;
 export const pullFromCloud = pullFullCloudPayload;
