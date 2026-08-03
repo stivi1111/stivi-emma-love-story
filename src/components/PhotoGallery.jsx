@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Upload, Sparkles, X, Trash2, Link as LinkIcon, Cloud } from 'lucide-react';
 import { saveAndSyncCloud, pullFromCloud, registerDeletedId } from '../utils/cloudSync';
-import { compressImage } from '../utils/imageCompressor';
+import { uploadImageToCloud } from '../utils/imageUploader';
 
 export default function PhotoGallery() {
   const [photos, setPhotos] = useState(() => {
@@ -17,7 +17,7 @@ export default function PhotoGallery() {
   const [urlTitle, setUrlTitle] = useState('');
   const [showUrlModal, setShowUrlModal] = useState(false);
 
-  // Exact LoveNotes pattern: Listen to live cloud sync events and update state immediately
+  // Listen to live cloud sync events and update state immediately
   useEffect(() => {
     const handleCloudSynced = () => {
       const saved = localStorage.getItem('stivi_emma_real_photos');
@@ -74,25 +74,25 @@ export default function PhotoGallery() {
     if (!files || files.length === 0) return;
 
     setIsSyncing(true);
-    setSyncStatus('Ottimizzazione ed invio al Cloud...');
+    setSyncStatus('Caricamento foto sul Cloud CDN...');
     const fileList = Array.from(files);
     const newPhotoItems = [];
 
     for (const file of fileList) {
       if (!file.type.startsWith('image/')) continue;
       try {
-        const compressedUrl = await compressImage(file);
+        const cdnUrl = await uploadImageToCloud(file);
         const newPhoto = {
           id: 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
           title: file.name.replace(/\.[^/.]+$/, "") || 'Foto Stivi & Emma',
-          url: compressedUrl,
+          url: cdnUrl,
           caption: 'La nostra foto reale 💖',
           likes: 1,
           isLiked: true
         };
         newPhotoItems.push(newPhoto);
       } catch (err) {
-        console.log('Image compression error:', err);
+        console.log('Image CDN upload error:', err);
       }
     }
 
@@ -100,7 +100,7 @@ export default function PhotoGallery() {
       const updatedPhotos = [...newPhotoItems, ...photos];
       setPhotos(updatedPhotos);
       await saveAndSyncCloud('stivi_emma_real_photos', updatedPhotos);
-      setSyncStatus('Foto Caricate e Sincronizzate! ☁️💖');
+      setSyncStatus('Foto Caricate & Sincronizzate! ☁️💖');
       setTimeout(() => setSyncStatus(''), 3000);
     }
     setIsSyncing(false);
@@ -150,10 +150,10 @@ export default function PhotoGallery() {
           <span className="gradient-text font-serif">Galleria Fotografica</span> <span className="emoji-color">📸💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0' }}>
-          Carica le foto vere dal cellulare o dal PC: si ottimizzano e sincronizzano all'istante dappertutto!
+          Carica le foto vere dal cellulare o dal PC: vengono pubblicate sul CDN Cloud e sincronizzate all'istante dappertutto!
         </p>
 
-        {/* Sync Status Button - Exact same as LoveNotes */}
+        {/* Sync Status Button */}
         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
           <button
             onClick={handleSyncNow}
@@ -246,7 +246,7 @@ export default function PhotoGallery() {
           <Upload size={28} className={isSyncing ? 'animate-spin' : ''} />
         </div>
         <h4 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-          {isSyncing ? 'Ottimizzazione & Sincronizzazione Foto in corso...' : 'Carica foto dal dispositivo (Sincronizzate) ✨'}
+          {isSyncing ? 'Caricamento CDN Cloud in corso...' : 'Carica foto dal dispositivo (Sincronizzate) ✨'}
         </h4>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
           Trascina le foto qui o clicca per caricarle dal tuo dispositivo
