@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Sparkles, Send, Trash2, Cloud } from 'lucide-react';
-import { saveAndSyncCloud, pullFromCloud } from '../utils/cloudSync';
+import { saveAndSyncCloud, pullFromCloud, registerDeletedId } from '../utils/cloudSync';
 
 export default function LoveNotes() {
   const [notes, setNotes] = useState(() => {
@@ -61,6 +61,7 @@ export default function LoveNotes() {
   };
 
   const deleteNote = async (id) => {
+    registerDeletedId(id);
     const updated = notes.filter(n => n.id !== id);
     setNotes(updated);
     await saveAndSyncCloud('stivi_emma_real_notes', updated);

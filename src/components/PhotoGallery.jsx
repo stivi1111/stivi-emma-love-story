@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Upload, Sparkles, X, Trash2, Link as LinkIcon, Plus } from 'lucide-react';
-import { saveAndSyncCloud } from '../utils/cloudSync';
+import { Heart, Upload, Sparkles, X, Trash2, Link as LinkIcon } from 'lucide-react';
+import { saveAndSyncCloud, registerDeletedId } from '../utils/cloudSync';
 import { compressImage } from '../utils/imageCompressor';
 
 export default function PhotoGallery() {
@@ -44,6 +44,7 @@ export default function PhotoGallery() {
 
   const deletePhoto = async (photoId, e) => {
     if (e) e.stopPropagation();
+    registerDeletedId(photoId);
     const updated = photos.filter(p => p.id !== photoId);
     setPhotos(updated);
     if (activePhoto && activePhoto.id === photoId) {
@@ -64,7 +65,7 @@ export default function PhotoGallery() {
       try {
         const compressedUrl = await compressImage(file);
         const newPhoto = {
-          id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 5),
+          id: 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
           title: file.name.replace(/\.[^/.]+$/, "") || 'Foto Stivi & Emma',
           url: compressedUrl,
           caption: 'La nostra foto reale 💖',
@@ -90,7 +91,7 @@ export default function PhotoGallery() {
     if (!urlInput.trim()) return;
 
     const newPhoto = {
-      id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 5),
+      id: 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       title: urlTitle.trim() || 'Foto Stivi & Emma',
       url: urlInput.trim(),
       caption: 'La nostra foto reale 💖',
