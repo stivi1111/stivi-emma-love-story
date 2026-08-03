@@ -1,20 +1,36 @@
 import React, { useState } from 'react';
-import { Heart, Sun, Moon, Volume2, VolumeX, Menu, X } from 'lucide-react';
+import { Heart, Sun, Moon, Volume2, VolumeX, Menu, X, ChevronDown } from 'lucide-react';
 
 export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
-  const navLinks = [
+  const navGroups = [
     { name: 'Home', href: '#hero' },
-    { name: 'Tempo Insieme', href: '#counter' },
-    { name: 'La Nostra Storia', href: '#timeline' },
-    { name: 'Cosa Facciamo?', href: '#date-wheel' },
-    { name: 'Mappa del Cuore', href: '#memory-map' },
-    { name: 'Abbraccio', href: '#virtual-hug' },
-    { name: 'Countdown', href: '#countdowns' },
-    { name: 'Foto Album', href: '#gallery' },
-    { name: 'Note d\'Amore', href: '#notes' },
-    { name: 'Bucket List', href: '#bucketlist' }
+    {
+      name: 'Il Nostro Amore 💖',
+      items: [
+        { name: 'Tempo Insieme ⏳', href: '#counter' },
+        { name: 'La Nostra Storia 📖', href: '#timeline' },
+        { name: 'Mappa del Cuore 📍', href: '#memory-map' }
+      ]
+    },
+    {
+      name: 'Momenti & Giochi ✨',
+      items: [
+        { name: 'Cosa Facciamo Stasera? 🎡', href: '#date-wheel' },
+        { name: 'Abbraccio Virtuale 🫂', href: '#virtual-hug' },
+        { name: 'Countdown Eventi 🎂', href: '#countdowns' }
+      ]
+    },
+    {
+      name: 'Ricordi 📸',
+      items: [
+        { name: 'Foto Album 🖼️', href: '#gallery' },
+        { name: 'Note d\'Amore 💌', href: '#notes' },
+        { name: 'Bucket List ✈️', href: '#bucketlist' }
+      ]
+    }
   ];
 
   return (
@@ -22,7 +38,7 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '16px 24px',
+        padding: '14px 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between'
@@ -30,8 +46,8 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
         {/* Brand Logo */}
         <a href="#hero" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: '40px',
-            height: '40px',
+            width: '38px',
+            height: '38px',
             borderRadius: '50%',
             background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
             display: 'flex',
@@ -39,41 +55,114 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
             justifyContent: 'center',
             boxShadow: 'var(--shadow-glow)'
           }} className="animate-heartbeat">
-            <Heart size={22} color="#ffffff" fill="#ffffff" />
+            <Heart size={20} color="#ffffff" fill="#ffffff" />
           </div>
           <div>
-            <span className="font-serif" style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <span className="font-serif" style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               Stivi <span style={{ color: 'var(--accent-blush)' }}>&</span> Emma
-            </span>
-            <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
-              Love Story
             </span>
           </div>
         </a>
 
-        {/* Desktop Nav Links */}
-        <nav style={{ display: 'none', gap: '18px', alignItems: 'center' }} className="desktop-nav">
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              style={{
-                textDecoration: 'none',
-                color: 'var(--text-secondary)',
-                fontSize: '0.9rem',
-                fontWeight: 500,
-                transition: 'color var(--transition-fast)'
-              }}
-              onMouseEnter={(e) => (e.target.style.color = 'var(--accent-blush)')}
-              onMouseLeave={(e) => (e.target.style.color = 'var(--text-secondary)')}
-            >
-              {link.name}
-            </a>
-          ))}
+        {/* Streamlined Desktop Grouped Navigation */}
+        <nav style={{ display: 'none', gap: '20px', alignItems: 'center' }} className="desktop-nav">
+          {navGroups.map((group, idx) => {
+            if (!group.items) {
+              return (
+                <a
+                  key={group.name}
+                  href={group.href}
+                  style={{
+                    textDecoration: 'none',
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.92rem',
+                    fontWeight: 600,
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.target.style.color = 'var(--accent-rose)'; e.target.style.background = 'rgba(255, 77, 109, 0.08)'; }}
+                  onMouseLeave={(e) => { e.target.style.color = 'var(--text-secondary)'; e.target.style.background = 'transparent'; }}
+                >
+                  {group.name}
+                </a>
+              );
+            }
+
+            return (
+              <div
+                key={group.name}
+                style={{ position: 'relative' }}
+                onMouseEnter={() => setActiveDropdown(idx)}
+                onMouseLeave={() => setActiveDropdown(null)}
+              >
+                <button
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.92rem',
+                    fontWeight: 600,
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-rose)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                >
+                  {group.name}
+                  <ChevronDown size={14} style={{ transform: activeDropdown === idx ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {activeDropdown === idx && (
+                  <div className="glass-card" style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    minWidth: '210px',
+                    padding: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    boxShadow: 'var(--shadow-lg)',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-card)',
+                    backdropFilter: 'blur(20px)',
+                    zIndex: 110
+                  }}>
+                    {group.items.map((sub) => (
+                      <a
+                        key={sub.name}
+                        href={sub.href}
+                        style={{
+                          textDecoration: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.88rem',
+                          fontWeight: 500,
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => { e.target.style.background = 'rgba(255, 77, 109, 0.1)'; e.target.style.color = 'var(--accent-rose)'; }}
+                        onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.color = 'var(--text-primary)'; }}
+                      >
+                        {sub.name}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
-        {/* Right Controls (Theme & Sound & Mobile Toggle) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Right Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             onClick={toggleSound}
             title={isSoundOn ? "Disattiva Audio Ambient" : "Attiva Audio Ambient"}
@@ -81,17 +170,14 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
               background: 'var(--bg-card)',
               border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-full)',
-              padding: '10px',
+              padding: '9px',
               cursor: 'pointer',
               color: 'var(--accent-blush)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'var(--shadow-sm)',
-              transition: 'transform 0.2s'
+              boxShadow: 'var(--shadow-sm)'
             }}
-            onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.92)')}
-            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
             {isSoundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
@@ -103,17 +189,14 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
               background: 'var(--bg-card)',
               border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-full)',
-              padding: '10px',
+              padding: '9px',
               cursor: 'pointer',
               color: 'var(--accent-gold)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'var(--shadow-sm)',
-              transition: 'transform 0.2s'
+              boxShadow: 'var(--shadow-sm)'
             }}
-            onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.92)')}
-            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -125,7 +208,7 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
               background: 'var(--bg-card)',
               border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-full)',
-              padding: '10px',
+              padding: '9px',
               cursor: 'pointer',
               color: 'var(--text-primary)',
               display: 'flex',
@@ -144,31 +227,47 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
           background: 'var(--bg-card)',
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid var(--border-light)',
-          padding: '20px 24px',
+          padding: '16px 24px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '14px'
+          gap: '12px'
         }}>
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              onClick={() => setMobileMenuOpen(false)}
-              style={{
-                textDecoration: 'none',
-                color: 'var(--text-primary)',
-                fontSize: '1rem',
-                fontWeight: 600
-              }}
-            >
-              {link.name}
-            </a>
-          ))}
+          {navGroups.map((group) => {
+            if (!group.items) {
+              return (
+                <a
+                  key={group.name}
+                  href={group.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{ textDecoration: 'none', color: 'var(--text-primary)', fontWeight: 700 }}
+                >
+                  {group.name}
+                </a>
+              );
+            }
+            return (
+              <div key={group.name} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-rose)', textTransform: 'uppercase' }}>
+                  {group.name}
+                </div>
+                {group.items.map((sub) => (
+                  <a
+                    key={sub.name}
+                    href={sub.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{ textDecoration: 'none', color: 'var(--text-primary)', paddingLeft: '12px', fontSize: '0.95rem' }}
+                  >
+                    {sub.name}
+                  </a>
+                ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
       <style>{`
-        @media (min-width: 900px) {
+        @media (min-width: 860px) {
           .desktop-nav { display: flex !important; }
           .mobile-menu-btn { display: none !important; }
         }

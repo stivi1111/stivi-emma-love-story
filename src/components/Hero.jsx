@@ -32,35 +32,35 @@ export default function Hero({ startDate, setStartDate }) {
   return (
     <section id="hero" style={{
       position: 'relative',
-      padding: '80px 24px 60px',
+      padding: '70px 20px 50px',
       textAlign: 'center',
-      maxWidth: '900px',
+      maxWidth: '920px',
       margin: '0 auto'
     }}>
-      {/* Top Floating Badge */}
+      {/* Glowing Floating Badge */}
       <div style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '8px',
         background: 'var(--bg-card)',
-        padding: '8px 18px',
+        padding: '8px 20px',
         borderRadius: 'var(--radius-full)',
         border: '1px solid var(--border-light)',
         boxShadow: 'var(--shadow-sm)',
-        marginBottom: '28px',
+        marginBottom: '24px',
         fontSize: '0.9rem',
         color: 'var(--accent-rose)',
         fontWeight: 600
       }}>
         <Sparkles size={16} className="animate-glow" />
-        <span>Il Sito Ufficiale di Stivi & Emma</span>
+        <span>Stivi & Emma • Il Nostro Angolo d'Amore</span>
       </div>
 
-      {/* Main Title */}
+      {/* Main Luxury Title */}
       <h1 className="font-serif gradient-text" style={{
-        fontSize: 'clamp(3rem, 8vw, 5.5rem)',
+        fontSize: 'clamp(3.2rem, 8vw, 5.8rem)',
         fontWeight: 700,
-        lineHeight: 1.1,
+        lineHeight: 1.08,
         marginBottom: '16px',
         letterSpacing: '-1px'
       }}>
@@ -68,29 +68,31 @@ export default function Hero({ startDate, setStartDate }) {
       </h1>
 
       <p style={{
-        fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
+        fontSize: 'clamp(1.1rem, 2.2vw, 1.35rem)',
         color: 'var(--text-secondary)',
         marginBottom: '32px',
         maxWidth: '650px',
         margin: '0 auto 32px'
       }}>
-        Il nostro spazio personale per custodire le foto reali, i ricordi veri, le note d'amore ed i nostri sogni.
+        Il nostro diario digitale di ricordi veri, momenti speciali, avventure e sogni condivisi.
       </p>
 
-      {/* Real Customizable Love Quote / Slogan Card */}
+      {/* Real Customizable Love Quote Card */}
       <div className="glass-card" style={{
-        padding: '24px 32px',
+        padding: '28px 32px',
         maxWidth: '650px',
-        margin: '0 auto 40px',
-        position: 'relative'
+        margin: '0 auto 36px',
+        position: 'relative',
+        background: 'linear-gradient(135deg, var(--bg-card), rgba(255, 77, 109, 0.04))',
+        boxShadow: 'var(--shadow-md)'
       }}>
         {!isEditingQuote ? (
           <div>
             <p className="font-handwriting" style={{
-              fontSize: '1.85rem',
+              fontSize: '1.95rem',
               color: 'var(--accent-blush)',
               marginBottom: '12px',
-              lineHeight: 1.4
+              lineHeight: 1.35
             }}>
               "{customQuote}"
             </p>
@@ -165,7 +167,7 @@ export default function Hero({ startDate, setStartDate }) {
       </div>
 
       {/* Action Buttons */}
-      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '48px' }}>
+      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '40px' }}>
         <button
           onClick={triggerLoveConfetti}
           style={{
@@ -180,11 +182,8 @@ export default function Hero({ startDate, setStartDate }) {
             boxShadow: 'var(--shadow-glow)',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            transition: 'transform 0.2s'
+            gap: '10px'
           }}
-          onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.95)')}
-          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         >
           <Heart size={20} fill="#ffffff" /> Festeggia l'Amore 🎉
         </button>
@@ -206,7 +205,7 @@ export default function Hero({ startDate, setStartDate }) {
             gap: '10px'
           }}
         >
-          Carica o Guarda le Foto 📸
+          Foto Album 📸
         </a>
       </div>
 
@@ -216,14 +215,14 @@ export default function Hero({ startDate, setStartDate }) {
         alignItems: 'center',
         gap: '10px',
         background: 'var(--bg-card)',
-        padding: '12px 24px',
+        padding: '10px 22px',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--border-light)',
-        fontSize: '0.95rem',
+        fontSize: '0.92rem',
         color: 'var(--text-secondary)'
       }}>
         <Calendar size={18} color="var(--accent-rose)" />
-        <span style={{ fontWeight: 600 }}>Data di inizio della vostra storia vera:</span>
+        <span style={{ fontWeight: 600 }}>Data di inizio storia:</span>
         <input
           type="date"
           value={startDate}
@@ -241,7 +240,7 @@ export default function Hero({ startDate, setStartDate }) {
         />
       </div>
 
-      <div style={{ marginTop: '40px' }} className="animate-float">
+      <div style={{ marginTop: '36px' }} className="animate-float">
         <a href="#counter" style={{ color: 'var(--text-muted)' }}>
           <ChevronDown size={28} />
         </a>
