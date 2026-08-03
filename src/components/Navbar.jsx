@@ -8,6 +8,10 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
     { name: 'Home', href: '#hero' },
     { name: 'Tempo Insieme', href: '#counter' },
     { name: 'La Nostra Storia', href: '#timeline' },
+    { name: 'Cosa Facciamo?', href: '#date-wheel' },
+    { name: 'Mappa del Cuore', href: '#memory-map' },
+    { name: 'Abbraccio', href: '#virtual-hug' },
+    { name: 'Countdown', href: '#countdowns' },
     { name: 'Foto Album', href: '#gallery' },
     { name: 'Note d\'Amore', href: '#notes' },
     { name: 'Bucket List', href: '#bucketlist' }
@@ -48,7 +52,7 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
         </a>
 
         {/* Desktop Nav Links */}
-        <nav style={{ display: 'none', gap: '24px', alignItems: 'center' }} className="desktop-nav">
+        <nav style={{ display: 'none', gap: '18px', alignItems: 'center' }} className="desktop-nav">
           {navLinks.map((link) => (
             <a
               key={link.name}
@@ -56,7 +60,7 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
               style={{
                 textDecoration: 'none',
                 color: 'var(--text-secondary)',
-                fontSize: '0.95rem',
+                fontSize: '0.9rem',
                 fontWeight: 500,
                 transition: 'color var(--transition-fast)'
               }}
@@ -143,7 +147,7 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
           padding: '20px 24px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px'
+          gap: '14px'
         }}>
           {navLinks.map((link) => (
             <a
@@ -153,7 +157,7 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
               style={{
                 textDecoration: 'none',
                 color: 'var(--text-primary)',
-                fontSize: '1.05rem',
+                fontSize: '1rem',
                 fontWeight: 600
               }}
             >
@@ -164,7 +168,7 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
       )}
 
       <style>{`
-        @media (min-width: 840px) {
+        @media (min-width: 900px) {
           .desktop-nav { display: flex !important; }
           .mobile-menu-btn { display: none !important; }
         }
