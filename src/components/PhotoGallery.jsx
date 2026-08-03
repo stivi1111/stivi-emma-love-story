@@ -72,8 +72,8 @@ export default function PhotoGallery() {
         }}>
           <Sparkles size={16} /> Le Vostre Foto Reali
         </div>
-        <h2 className="font-serif gradient-text" style={{ fontSize: '2.5rem', fontWeight: 700 }}>
-          Galleria Fotografica 📸💖
+        <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>
+          <span className="gradient-text font-serif">Galleria Fotografica</span> <span className="emoji-color">📸💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0' }}>
           Trascina o carica le vostre foto direttamente dal tuo dispositivo per creare l'album reale di Stivi ed Emma!
@@ -123,7 +123,7 @@ export default function PhotoGallery() {
           <Upload size={28} />
         </div>
         <h4 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-          Carica qui le foto vere di Stivi & Emma ✨
+          Carica qui le foto vere di Stivi & Emma <span className="emoji-color">✨</span>
         </h4>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
           Trascina le foto qui o clicca per sfogliare i file dal tuo computer

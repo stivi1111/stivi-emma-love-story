@@ -58,8 +58,8 @@ export default function StoryTimeline() {
         }}>
           <Sparkles size={16} /> I Vostri Ricordi Veri
         </div>
-        <h2 className="font-serif gradient-text" style={{ fontSize: '2.5rem', fontWeight: 700 }}>
-          La Nostra Storia Reale 📖💖
+        <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>
+          <span className="gradient-text font-serif">La Nostra Storia Reale</span> <span className="emoji-color">📖💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
           Inserisci le tappe ed i momenti reali che avete vissuto insieme.

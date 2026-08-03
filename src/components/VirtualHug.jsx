@@ -54,8 +54,8 @@ export default function VirtualHug() {
           <Sparkles size={16} /> Nei Momenti No o quando vi mancate
         </div>
 
-        <h2 className="font-serif gradient-text" style={{ fontSize: '2.4rem', fontWeight: 700, marginBottom: '12px' }}>
-          Ho Bisogno di un Abbraccio 🫂❤️
+        <h2 style={{ fontSize: '2.4rem', fontWeight: 700, marginBottom: '12px' }}>
+          <span className="gradient-text font-serif">Ho Bisogno di un Abbraccio</span> <span className="emoji-color">🫂❤️</span>
         </h2>
 
         <p style={{ color: 'var(--text-secondary)', marginBottom: '28px', fontSize: '1.05rem', maxWidth: '550px', margin: '0 auto 28px' }}>
@@ -83,12 +83,12 @@ export default function VirtualHug() {
           onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.95)')}
           onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         >
-          <Heart size={26} fill="#ffffff" className="animate-heartbeat" /> Invia un Abbraccio 🫂
+          <Heart size={26} fill="#ffffff" className="animate-heartbeat" /> Invia un Abbraccio <span className="emoji-color">🫂</span>
         </button>
 
         {/* Hug Counter */}
         <div style={{ marginTop: '20px', fontSize: '0.92rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-          Totale Abbracci Virtuali Inviati: <strong style={{ color: 'var(--accent-rose)', fontSize: '1.1rem' }}>{hugCount}</strong> 🫂
+          Totale Abbracci Virtuali Inviati: <strong style={{ color: 'var(--accent-rose)', fontSize: '1.1rem' }}>{hugCount}</strong> <span className="emoji-color">🫂</span>
         </div>
 
         {/* Active Hug Pop-up Message */}
@@ -100,7 +100,7 @@ export default function VirtualHug() {
             animation: 'pulseGlow 2s ease-in-out infinite'
           }}>
             <p className="font-handwriting" style={{ fontSize: '1.75rem', color: 'var(--accent-rose)' }}>
-              {activeMessage}
+              "{activeMessage}"
             </p>
           </div>
         )}

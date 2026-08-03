@@ -68,8 +68,8 @@ export default function BucketList() {
         }}>
           <Sparkles size={16} /> I Vostri Sogni Reali
         </div>
-        <h2 className="font-serif gradient-text" style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 700 }}>
-          Bucket List di Coppia ✈️💖
+        <h2 style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 700 }}>
+          <span className="gradient-text font-serif">Bucket List di Coppia</span> <span className="emoji-color">✈️💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
           Inserite tutte le avventure e le esperienze reali che volete realizzare insieme.

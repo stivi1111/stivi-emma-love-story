@@ -15,7 +15,6 @@ export default function UpcomingCountdowns() {
       return defaultDates;
     }
     const parsed = JSON.parse(saved);
-    // Ensure exact dates requested by Stivi
     parsed.anniversary = '2027-04-27';
     parsed.emmaBday = '2027-04-07';
     parsed.stiviBday = '2027-07-27';
@@ -68,8 +67,8 @@ export default function UpcomingCountdowns() {
         }}>
           <Sparkles size={16} /> Attesa delle Date Speciali
         </div>
-        <h2 className="font-serif gradient-text" style={{ fontSize: '2.5rem', fontWeight: 700 }}>
-          Countdown Eventi di Coppia 🎂✈️
+        <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>
+          <span className="gradient-text font-serif">Countdown Eventi di Coppia</span> <span className="emoji-color">🎂✈️</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
           Quanti giorni mancano ai vostri prossimi momenti speciali?

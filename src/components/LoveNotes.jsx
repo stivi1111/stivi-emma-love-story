@@ -47,8 +47,8 @@ export default function LoveNotes() {
         }}>
           <Sparkles size={16} /> I Vostri Pensieri Veri
         </div>
-        <h2 className="font-serif gradient-text" style={{ fontSize: '2.5rem', fontWeight: 700 }}>
-          Note & Dediche d'Amore 💌💖
+        <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>
+          <span className="gradient-text font-serif">Note & Dediche d'Amore</span> <span className="emoji-color">💌💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
           Scrivetevi messaggi e dediche reali da custodire sul vostro sito.
@@ -59,7 +59,7 @@ export default function LoveNotes() {
         {/* Add Real Note Form */}
         <form onSubmit={handleAddNote} className="glass-card" style={{ padding: '28px' }}>
           <h4 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>
-            Scrivi una nuova dedica reale ✍️
+            Scrivi una nuova dedica reale <span className="emoji-color">✍️</span>
           </h4>
 
           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', maxWidth: '360px' }}>
@@ -77,7 +77,7 @@ export default function LoveNotes() {
                 cursor: 'pointer'
               }}
             >
-              Da Stivi 🧑
+              Da Stivi <span className="emoji-color">🧑</span>
             </button>
             <button
               type="button"
@@ -93,7 +93,7 @@ export default function LoveNotes() {
                 cursor: 'pointer'
               }}
             >
-              Da Emma 👩
+              Da Emma <span className="emoji-color">👩</span>
             </button>
           </div>
 
