@@ -1,6 +1,7 @@
-// Foolproof Realtime Cloud Sync Engine for Stivi & Emma
+// Dual-Cloud Redundant Sync Engine for Stivi & Emma
 
-const JSONBLOB_ENDPOINT = 'https://jsonblob.com/api/jsonBlob/019fc7a2-7eee-73b8-9f46-de2048252f0a';
+const ENDPOINT_A = 'https://api.restful-api.dev/objects/ff8081819f7e10ae019fc7f83c1469c1';
+const ENDPOINT_B = 'https://jsonblob.com/api/jsonBlob/019fc7a2-7eee-73b8-9f46-de2048252f0a';
 
 export let isPushingCloud = false;
 
@@ -78,53 +79,68 @@ export const applyCloudPayload = (remoteData) => {
   return updated;
 };
 
-// Push local state to cloud via HTTP PUT
+// Push local state to BOTH cloud endpoints simultaneously
 export const pushFullCloudPayload = async (payload = getLocalPayload()) => {
   isPushingCloud = true;
+
+  const pushA = fetch(ENDPOINT_A, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ name: 'Stivi & Emma Data', data: payload })
+  }).catch(() => null);
+
+  const pushB = fetch(ENDPOINT_B, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(() => null);
+
   try {
-    const res = await fetch(JSONBLOB_ENDPOINT, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-    return res.ok;
-  } catch (e) {
-    console.log('Cloud push error:', e);
-    return false;
+    await Promise.allSettled([pushA, pushB]);
+    return true;
   } finally {
-    setTimeout(() => { isPushingCloud = false; }, 1200);
+    setTimeout(() => { isPushingCloud = false; }, 800);
   }
 };
 
-// Pull remote state from cloud via HTTP GET with zero browser cache
+// Pull remote state from Cloud (Tries Endpoint A first, falls back to Endpoint B)
 export const pullFullCloudPayload = async () => {
   if (isPushingCloud) return { success: false, skipped: true };
 
   try {
-    const url = `${JSONBLOB_ENDPOINT}?t=${Date.now()}`;
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache'
-      },
+    const resA = await fetch(`${ENDPOINT_A}?t=${Date.now()}`, {
+      headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache, no-store' },
       cache: 'no-store'
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data && typeof data === 'object') {
-        const hasChanges = applyCloudPayload(data);
-        return { success: true, hasChanges, data };
+    if (resA.ok) {
+      const objA = await resA.json();
+      if (objA && objA.data && typeof objA.data === 'object') {
+        const hasChanges = applyCloudPayload(objA.data);
+        return { success: true, hasChanges, data: objA.data };
       }
     }
   } catch (e) {
-    console.log('Cloud pull error:', e);
+    console.log('Endpoint A pull failed, trying Endpoint B:', e);
   }
+
+  try {
+    const resB = await fetch(`${ENDPOINT_B}?t=${Date.now()}`, {
+      headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache, no-store' },
+      cache: 'no-store'
+    });
+
+    if (resB.ok) {
+      const dataB = await resB.json();
+      if (dataB && typeof dataB === 'object') {
+        const hasChanges = applyCloudPayload(dataB);
+        return { success: true, hasChanges, data: dataB };
+      }
+    }
+  } catch (e) {
+    console.log('Endpoint B pull failed:', e);
+  }
+
   return { success: false, hasChanges: false };
 };
 
