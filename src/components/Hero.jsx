@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { Heart, Sparkles, Calendar, ChevronDown, Edit3, Check } from 'lucide-react';
+import { saveAndSyncCloud } from '../utils/cloudSync';
 
 export default function Hero({ startDate, setStartDate }) {
   const [customQuote, setCustomQuote] = useState(() => {
@@ -10,8 +11,13 @@ export default function Hero({ startDate, setStartDate }) {
   const [tempQuote, setTempQuote] = useState(customQuote);
 
   useEffect(() => {
-    localStorage.setItem('stivi_emma_custom_quote', customQuote);
-  }, [customQuote]);
+    const handleCloudSynced = () => {
+      const saved = localStorage.getItem('stivi_emma_custom_quote');
+      if (saved) setCustomQuote(saved);
+    };
+    window.addEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+    return () => window.removeEventListener('stivi_emma_cloud_synced', handleCloudSynced);
+  }, []);
 
   const triggerLoveConfetti = () => {
     confetti({
@@ -22,9 +28,11 @@ export default function Hero({ startDate, setStartDate }) {
     });
   };
 
-  const saveQuote = () => {
+  const saveQuote = async () => {
     if (tempQuote.trim()) {
-      setCustomQuote(tempQuote.trim());
+      const nextVal = tempQuote.trim();
+      setCustomQuote(nextVal);
+      await saveAndSyncCloud('stivi_emma_custom_quote', nextVal);
     }
     setIsEditingQuote(false);
   };
@@ -146,7 +154,7 @@ export default function Hero({ startDate, setStartDate }) {
                   gap: '6px'
                 }}
               >
-                <Check size={16} /> Salva Frase
+                <Check size={16} /> Salva & Sincronizza Frase ☁️
               </button>
               <button
                 onClick={() => setIsEditingQuote(false)}
