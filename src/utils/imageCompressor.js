@@ -1,6 +1,6 @@
-// Image compression helper to optimize uploaded photos for instant Cloud Sync
+// Ultra-Compact Self-Contained Canvas Compression Helper for Stivi & Emma
 
-export const compressImage = (file, maxWidth = 1000, maxHeight = 1000, quality = 0.75) => {
+export const compressImage = (file, maxWidth = 450, maxHeight = 450, quality = 0.6) => {
   return new Promise((resolve, reject) => {
     if (!file || !file.type.startsWith('image/')) {
       return reject(new Error('File is not an image'));

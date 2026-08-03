@@ -78,19 +78,19 @@ export default function PhotoGallery() {
 
     setCloudLock(true);
     setIsSyncing(true);
-    setSyncStatus('Caricamento foto sul Cloud CDN...');
+    setSyncStatus('Elaborazione ed invio foto...');
     const fileList = Array.from(files);
     const newPhotoItems = [];
 
     for (const file of fileList) {
       if (!file.type.startsWith('image/')) continue;
       try {
-        const cdnUrl = await uploadImageToCloud(file);
-        if (cdnUrl) {
+        const photoUrl = await uploadImageToCloud(file);
+        if (photoUrl) {
           const newPhoto = {
             id: 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
             title: file.name.replace(/\.[^/.]+$/, "") || 'Foto Stivi & Emma',
-            url: cdnUrl,
+            url: photoUrl,
             caption: 'La nostra foto reale 💖',
             likes: 1,
             isLiked: true
@@ -98,13 +98,13 @@ export default function PhotoGallery() {
           newPhotoItems.push(newPhoto);
         }
       } catch (err) {
-        console.log('Image CDN upload error:', err);
+        console.log('Photo upload error:', err);
       }
     }
 
     if (newPhotoItems.length > 0) {
       const currentStored = JSON.parse(localStorage.getItem('stivi_emma_real_photos') || '[]');
-      const updatedPhotos = [...newPhotoItems, ...currentStored];
+      const updatedPhotos = [...newPhotoItems, ...currentStored].slice(0, 40); // Keep max 40 photos
       setPhotos(updatedPhotos);
       await saveAndSyncCloud('stivi_emma_real_photos', updatedPhotos);
       setSyncStatus('Foto Caricate & Sincronizzate! ☁️💖');
@@ -129,7 +129,7 @@ export default function PhotoGallery() {
     };
 
     const currentStored = JSON.parse(localStorage.getItem('stivi_emma_real_photos') || '[]');
-    const updatedPhotos = [newPhoto, ...currentStored];
+    const updatedPhotos = [newPhoto, ...currentStored].slice(0, 40);
     setPhotos(updatedPhotos);
     setUrlInput('');
     setUrlTitle('');
@@ -161,7 +161,7 @@ export default function PhotoGallery() {
           <span className="gradient-text font-serif">Galleria Fotografica</span> <span className="emoji-color">📸💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0' }}>
-          Carica le foto vere dal cellulare o dal PC: vengono pubblicate sul CDN Cloud e sincronizzate all'istante dappertutto!
+          Carica le foto vere dal cellulare o dal PC: vengono salvate sul Cloud e sincronizzate all'istante dappertutto!
         </p>
 
         {/* Sync Status Button */}
@@ -257,7 +257,7 @@ export default function PhotoGallery() {
           <Upload size={28} className={isSyncing ? 'animate-spin' : ''} />
         </div>
         <h4 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-          {isSyncing ? 'Caricamento CDN Cloud in corso...' : 'Carica foto dal dispositivo (Sincronizzate) ✨'}
+          {isSyncing ? 'Caricamento & Sincronizzazione in corso...' : 'Carica foto dal dispositivo (Sincronizzate) ✨'}
         </h4>
         <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
           Trascina le foto qui o clicca per caricarle dal tuo dispositivo
