@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Heart, Sun, Moon, Volume2, VolumeX, Menu, X, ChevronDown } from 'lucide-react';
+import { Heart, Sun, Moon, Menu, X, ChevronDown } from 'lucide-react';
 
-export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
+export default function Navbar({ theme, toggleTheme }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
 
@@ -161,27 +161,8 @@ export default function Navbar({ theme, toggleTheme, isSoundOn, toggleSound }) {
           })}
         </nav>
 
-        {/* Right Controls */}
+        {/* Right Controls (Theme & Mobile Toggle only) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={toggleSound}
-            title={isSoundOn ? "Disattiva Audio Ambient" : "Attiva Audio Ambient"}
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-light)',
-              borderRadius: 'var(--radius-full)',
-              padding: '9px',
-              cursor: 'pointer',
-              color: 'var(--accent-blush)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 'var(--shadow-sm)'
-            }}
-          >
-            {isSoundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
-          </button>
-
           <button
             onClick={toggleTheme}
             title={theme === 'dark' ? "Passa a Tema Chiaro" : "Passa a Tema Scuro"}

@@ -29,9 +29,6 @@ export default function App() {
     return saved;
   });
 
-  // Sound toggle state
-  const [isSoundOn, setIsSoundOn] = useState(false);
-
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('stivi_emma_theme', theme);
@@ -41,42 +38,8 @@ export default function App() {
     localStorage.setItem('stivi_emma_start_date', startDate);
   }, [startDate]);
 
-  // Ambient Web Audio Synthesizer toggle
-  useEffect(() => {
-    if (!isSoundOn) return;
-
-    let audioCtx;
-    let osc;
-    let gainNode;
-
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      osc = audioCtx.createOscillator();
-      gainNode = audioCtx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(432, audioCtx.currentTime);
-      gainNode.gain.setValueAtTime(0.03, audioCtx.currentTime);
-
-      osc.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      osc.start();
-    } catch (e) {
-      console.log('Audio init failed:', e);
-    }
-
-    return () => {
-      if (osc) osc.stop();
-      if (audioCtx) audioCtx.close();
-    };
-  }, [isSoundOn]);
-
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
-  };
-
-  const toggleSound = () => {
-    setIsSoundOn(prev => !prev);
   };
 
   return (
@@ -88,8 +51,6 @@ export default function App() {
       <Navbar
         theme={theme}
         toggleTheme={toggleTheme}
-        isSoundOn={isSoundOn}
-        toggleSound={toggleSound}
       />
 
       {/* Main Content Sections */}

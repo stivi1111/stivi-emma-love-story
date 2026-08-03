@@ -3,13 +3,23 @@ import { Calendar, Sparkles, Gift, Plane, Heart, Edit3, Check } from 'lucide-rea
 
 export default function UpcomingCountdowns() {
   const [dates, setDates] = useState(() => {
-    const saved = localStorage.getItem('stivi_emma_upcoming_dates');
-    return saved ? JSON.parse(saved) : {
+    const defaultDates = {
       anniversary: '2027-04-27',
-      emmaBday: '2026-10-15',
-      stiviBday: '2026-11-20',
+      emmaBday: '2027-04-07',
+      stiviBday: '2027-07-27',
       nextTrip: '2026-09-01'
     };
+    const saved = localStorage.getItem('stivi_emma_upcoming_dates');
+    if (!saved) {
+      localStorage.setItem('stivi_emma_upcoming_dates', JSON.stringify(defaultDates));
+      return defaultDates;
+    }
+    const parsed = JSON.parse(saved);
+    // Ensure exact dates requested by Stivi
+    parsed.anniversary = '2027-04-27';
+    parsed.emmaBday = '2027-04-07';
+    parsed.stiviBday = '2027-07-27';
+    return parsed;
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -24,7 +34,6 @@ export default function UpcomingCountdowns() {
     const now = new Date();
     let target = new Date(targetDateStr);
 
-    // If date is in the past for this year, bump to next year
     if (target.getTime() < now.getTime()) {
       target.setFullYear(now.getFullYear() + 1);
     }
@@ -39,10 +48,10 @@ export default function UpcomingCountdowns() {
   };
 
   const eventList = [
-    { title: 'Prossimo Anniversario 💍', days: getDaysRemaining(dates.anniversary), icon: <Heart size={22} color="var(--accent-rose)" fill="var(--accent-rose)" />, dateKey: 'anniversary' },
-    { title: 'Compleanno di Emma 🎂', days: getDaysRemaining(dates.emmaBday), icon: <Gift size={22} color="var(--accent-blush)" />, dateKey: 'emmaBday' },
-    { title: 'Compleanno di Stivi 🎈', days: getDaysRemaining(dates.stiviBday), icon: <Gift size={22} color="var(--accent-gold)" />, dateKey: 'stiviBday' },
-    { title: 'Prossimo Viaggio / Vacanza ✈️', days: getDaysRemaining(dates.nextTrip), icon: <Plane size={22} color="var(--accent-rose)" />, dateKey: 'nextTrip' }
+    { title: 'Prossimo Anniversario (27 Aprile) 💍', days: getDaysRemaining(dates.anniversary), icon: <Heart size={22} color="var(--accent-rose)" fill="var(--accent-rose)" /> },
+    { title: 'Compleanno di Emma (7 Aprile) 🎂', days: getDaysRemaining(dates.emmaBday), icon: <Gift size={22} color="var(--accent-blush)" /> },
+    { title: 'Compleanno di Stivi (27 Luglio) 🎈', days: getDaysRemaining(dates.stiviBday), icon: <Gift size={22} color="var(--accent-gold)" /> },
+    { title: 'Prossimo Viaggio / Vacanza ✈️', days: getDaysRemaining(dates.nextTrip), icon: <Plane size={22} color="var(--accent-rose)" /> }
   ];
 
   return (
@@ -83,7 +92,7 @@ export default function UpcomingCountdowns() {
             gap: '6px'
           }}
         >
-          <Edit3 size={14} /> Personalizza le date di Compleanni & Viaggi
+          <Edit3 size={14} /> Personalizza le date
         </button>
       </div>
 
@@ -93,7 +102,7 @@ export default function UpcomingCountdowns() {
           <h4 style={{ marginBottom: '16px', color: 'var(--accent-rose)' }}>Imposta le date corrette:</h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
             <div>
-              <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '4px', color: 'var(--text-muted)' }}>Compleanno Emma</label>
+              <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '4px', color: 'var(--text-muted)' }}>Compleanno Emma (7 Aprile)</label>
               <input
                 type="date"
                 value={tempDates.emmaBday}
@@ -102,7 +111,7 @@ export default function UpcomingCountdowns() {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '4px', color: 'var(--text-muted)' }}>Compleanno Stivi</label>
+              <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '4px', color: 'var(--text-muted)' }}>Compleanno Stivi (27 Luglio)</label>
               <input
                 type="date"
                 value={tempDates.stiviBday}
