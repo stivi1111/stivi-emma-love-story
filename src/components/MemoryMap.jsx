@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Sparkles, X, Trash2, Navigation, ExternalLink, Search, LocateFixed } from 'lucide-react';
+import { MapPin, Plus, Sparkles, X, Trash2, Navigation, ExternalLink, Search, LocateFixed, Map } from 'lucide-react';
 
 export default function MemoryMap() {
   const [places, setPlaces] = useState(() => {
@@ -40,7 +40,9 @@ export default function MemoryMap() {
           const name = [p.name, p.street, p.city || p.town || p.county, p.country].filter(Boolean).join(', ');
           return {
             displayName: name,
-            shortName: p.name || val
+            shortName: p.name || val,
+            lat: f.geometry.coordinates[1],
+            lon: f.geometry.coordinates[0]
           };
         });
         setSuggestions(results);
@@ -106,7 +108,9 @@ export default function MemoryMap() {
       category: newPlace.category,
       note: newPlace.note.trim(),
       mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`,
-      embedUrl: `https://maps.google.com/maps?q=${encodedQuery}&t=&z=14&ie=UTF8&iwloc=&output=embed`
+      appleMapsUrl: `https://maps.apple.com/?q=${encodedQuery}`,
+      // iOS & Universal compatible embed fallback
+      embedUrl: `https://maps.google.com/maps?q=${encodedQuery}&t=&z=13&ie=UTF8&iwloc=&output=embed`
     };
 
     setPlaces([item, ...places]);
@@ -120,7 +124,7 @@ export default function MemoryMap() {
 
   return (
     <section id="memory-map" style={{ padding: '60px 20px', maxWidth: '1050px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-      {/* Header with Fixed Emoji Color */}
+      {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <div style={{
           display: 'inline-flex',
@@ -131,17 +135,17 @@ export default function MemoryMap() {
           fontSize: '0.9rem',
           marginBottom: '8px'
         }}>
-          <Sparkles size={16} /> Mappa delle Emozioni & Google Maps
+          <Sparkles size={16} /> Mappa delle Emozioni & Mappe iPhone/Android
         </div>
         <h2 style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 700 }}>
           <span className="gradient-text font-serif">I Luoghi del Nostro Cuore</span> <span className="emoji-color">🗺️📍</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0' }}>
-          Digita il nome di un luogo per trovarlo in automatico con Google Maps!
+          Compatibile al 100% con iPhone ed Android! Digita un posto per trovarlo sulla mappa.
         </p>
       </div>
 
-      {/* Prominent Automatic Search Box right at the Top */}
+      {/* Prominent Automatic Search Box */}
       <div className="glass-card" style={{
         maxWidth: '750px',
         margin: '0 auto 40px',
@@ -154,7 +158,7 @@ export default function MemoryMap() {
           Cerca & Aggiungi Luogo Automatico <span className="emoji-color">🔍📍</span>
         </h3>
         <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '18px' }}>
-          Inizia a digitare il nome (es. Colosseo, Duomo Milano) per i suggerimenti automatici oppure usa il GPS!
+          Inizia a digitare il nome (es. Colosseo Roma, Duomo Milano) per i suggerimenti o usa il GPS!
         </p>
 
         <form onSubmit={handleAddPlace} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -162,7 +166,7 @@ export default function MemoryMap() {
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
               <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Cerca Luogo o Indirizzo (Autocomplete)
+                Cerca Luogo o Indirizzo
               </label>
               <button
                 type="button"
@@ -334,17 +338,17 @@ export default function MemoryMap() {
               gap: '8px'
             }}
           >
-            <Plus size={18} /> Salva Luogo su Google Maps <span className="emoji-color">🗺️</span>
+            <Plus size={18} /> Salva Luogo con Mappa <span className="emoji-color">🗺️</span>
           </button>
         </form>
       </div>
 
-      {/* Places Stream Grid */}
+      {/* Places Grid */}
       {places.length === 0 ? (
         <div className="glass-card" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', width: '100%', boxSizing: 'border-box' }}>
           <MapPin size={42} color="var(--accent-rose)" style={{ margin: '0 auto 12px', display: 'block' }} />
           <h4 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '6px' }}>Nessun luogo ancora inserito</h4>
-          <p style={{ fontSize: '0.95rem' }}>Digita nel riquadro in alto es. "Colosseo" o "Duomo" ed il sistema trovera automaticamente il posto per te con Google Maps!</p>
+          <p style={{ fontSize: '0.95rem' }}>Digita nel riquadro in alto es. "Colosseo" o "Duomo" ed il sistema trovera automaticamente il posto per te!</p>
         </div>
       ) : (
         <div style={{
@@ -373,19 +377,20 @@ export default function MemoryMap() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  zIndex: 2
+                  zIndex: 3
                 }}
               >
                 <Trash2 size={16} />
               </button>
 
+              {/* Map Preview Box with iOS Safari Fallback Header */}
               <div style={{ position: 'relative', width: '100%', height: '180px', background: '#e5e3df' }}>
                 <iframe
                   title={place.title}
                   width="100%"
                   height="100%"
                   frameBorder="0"
-                  style={{ border: 0 }}
+                  style={{ border: 0, width: '100%', height: '100%' }}
                   src={place.embedUrl}
                   allowFullScreen
                   loading="lazy"
@@ -421,29 +426,56 @@ export default function MemoryMap() {
                   </p>
                 )}
 
-                <a
-                  href={place.mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--border-light)',
-                    color: 'var(--accent-rose)',
-                    textDecoration: 'none',
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <ExternalLink size={16} /> Apri su Google Maps <span className="emoji-color">🗺️</span>
-                </a>
+                {/* iPhone (Apple Maps) & Android (Google Maps) Dual Navigation Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <a
+                    href={place.mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-primary)',
+                      border: '1px solid var(--border-light)',
+                      color: 'var(--accent-rose)',
+                      textDecoration: 'none',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <Map size={16} /> Apri su Google Maps <span className="emoji-color">🗺️</span>
+                  </a>
+
+                  <a
+                    href={place.appleMapsUrl || `https://maps.apple.com/?q=${encodeURIComponent(place.cityName)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(0, 122, 255, 0.08)',
+                      border: '1px solid rgba(0, 122, 255, 0.2)',
+                      color: '#007aff',
+                      textDecoration: 'none',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <ExternalLink size={16} /> Apri su Apple Maps (iPhone) <span className="emoji-color">🍎</span>
+                  </a>
+                </div>
               </div>
             </div>
           ))}
