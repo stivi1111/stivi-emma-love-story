@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Sparkles, X, Trash2, Navigation, ExternalLink, Search, LocateFixed, Check } from 'lucide-react';
+import { MapPin, Plus, Sparkles, X, Trash2, Navigation, ExternalLink, Search, LocateFixed } from 'lucide-react';
 
 export default function MemoryMap() {
   const [places, setPlaces] = useState(() => {
@@ -7,7 +7,6 @@ export default function MemoryMap() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [showModal, setShowModal] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -22,7 +21,7 @@ export default function MemoryMap() {
     localStorage.setItem('stivi_emma_real_places', JSON.stringify(places));
   }, [places]);
 
-  // Live Autocomplete search using Photon / Nominatim Geocoding API
+  // Live Autocomplete search using Photon Geocoding API
   const handleCityInputChange = async (val) => {
     setNewPlace(prev => ({ ...prev, cityName: val }));
 
@@ -41,9 +40,7 @@ export default function MemoryMap() {
           const name = [p.name, p.street, p.city || p.town || p.county, p.country].filter(Boolean).join(', ');
           return {
             displayName: name,
-            shortName: p.name || val,
-            lat: f.geometry.coordinates[1],
-            lon: f.geometry.coordinates[0]
+            shortName: p.name || val
           };
         });
         setSuggestions(results);
@@ -115,7 +112,6 @@ export default function MemoryMap() {
     setPlaces([item, ...places]);
     setNewPlace({ title: '', cityName: '', category: 'Primo Incontro', note: '' });
     setSuggestions([]);
-    setShowModal(false);
   };
 
   const deletePlace = (id) => {
@@ -124,7 +120,8 @@ export default function MemoryMap() {
 
   return (
     <section id="memory-map" style={{ padding: '60px 20px', maxWidth: '1050px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+      {/* Header with Fixed Emoji Color */}
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -134,42 +131,220 @@ export default function MemoryMap() {
           fontSize: '0.9rem',
           marginBottom: '8px'
         }}>
-          <Sparkles size={16} /> Ricerca Automatica dei Luoghi
+          <Sparkles size={16} /> Mappa delle Emozioni & Google Maps
         </div>
-        <h2 className="font-serif gradient-text" style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 700 }}>
-          I Luoghi del Nostro Cuore 🗺️📍
+        <h2 style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 700 }}>
+          <span className="gradient-text font-serif">I Luoghi del Nostro Cuore</span> <span className="emoji-color">🗺️📍</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0' }}>
-          Digita poche lettere per trovare automaticamente qualsiasi posto o usa la tua posizione attuale!
+          Digita il nome di un luogo per trovarlo in automatico con Google Maps!
         </p>
-
-        <button
-          onClick={() => setShowModal(true)}
-          style={{
-            marginTop: '20px',
-            background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
-            color: '#ffffff',
-            border: 'none',
-            padding: '12px 28px',
-            borderRadius: 'var(--radius-full)',
-            cursor: 'pointer',
-            fontWeight: 700,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: 'var(--shadow-glow)'
-          }}
-        >
-          <Search size={18} /> Cerca & Aggiungi Luogo Automatico 🔍
-        </button>
       </div>
 
-      {/* Places Stream */}
+      {/* Prominent Automatic Search Box right at the Top */}
+      <div className="glass-card" style={{
+        maxWidth: '750px',
+        margin: '0 auto 40px',
+        padding: '28px',
+        boxSizing: 'border-box',
+        background: 'linear-gradient(135deg, var(--bg-card), rgba(255, 77, 109, 0.05))',
+        boxShadow: 'var(--shadow-md)'
+      }}>
+        <h3 className="font-serif" style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent-rose)', marginBottom: '4px' }}>
+          Cerca & Aggiungi Luogo Automatico <span className="emoji-color">🔍📍</span>
+        </h3>
+        <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '18px' }}>
+          Inizia a digitare il nome (es. Colosseo, Duomo Milano) per i suggerimenti automatici oppure usa il GPS!
+        </p>
+
+        <form onSubmit={handleAddPlace} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Autocomplete Input */}
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Cerca Luogo o Indirizzo (Autocomplete)
+              </label>
+              <button
+                type="button"
+                onClick={useCurrentLocation}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent-blush)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <LocateFixed size={14} /> Usa mia posizione <span className="emoji-color">📍</span>
+              </button>
+            </div>
+
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Digita es. 'Colosseo Roma', 'Duomo Milano'..."
+                value={newPlace.cityName}
+                onChange={(e) => handleCityInputChange(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  paddingRight: '40px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-light)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', right: '14px', top: '14px' }} />
+            </div>
+
+            {/* Suggestions Dropdown */}
+            {suggestions.length > 0 && (
+              <div className="glass-card" style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'var(--bg-card)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-sm)',
+                marginTop: '6px',
+                boxShadow: 'var(--shadow-lg)',
+                zIndex: 10,
+                maxHeight: '200px',
+                overflowY: 'auto',
+                padding: '6px'
+              }}>
+                {suggestions.map((sugg, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => selectSuggestion(sugg)}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      color: 'var(--text-primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 77, 109, 0.12)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <MapPin size={16} color="var(--accent-rose)" />
+                    <span>{sugg.displayName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                Titolo Ricordo
+              </label>
+              <input
+                type="text"
+                placeholder="es. Dove ci siamo conosciuti"
+                value={newPlace.title}
+                onChange={(e) => setNewPlace({ ...newPlace, title: e.target.value })}
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-light)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                Categoria
+              </label>
+              <select
+                value={newPlace.category}
+                onChange={(e) => setNewPlace({ ...newPlace, category: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-light)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <option value="Primo Incontro">Primo Incontro</option>
+                <option value="Primo Bacio">Primo Bacio</option>
+                <option value="Primo Viaggio">Primo Viaggio</option>
+                <option value="Ristorante Preferito">Ristorante Preferito</option>
+                <option value="Posto del Cuore">Posto del Cuore</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <textarea
+              placeholder="Nota o dettaglio speciale sul posto (Opzionale)..."
+              value={newPlace.note}
+              onChange={(e) => setNewPlace({ ...newPlace, note: e.target.value })}
+              rows={2}
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-light)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                resize: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            style={{
+              padding: '14px',
+              borderRadius: 'var(--radius-full)',
+              border: 'none',
+              background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
+              color: '#ffffff',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: 'var(--shadow-glow)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            <Plus size={18} /> Salva Luogo su Google Maps <span className="emoji-color">🗺️</span>
+          </button>
+        </form>
+      </div>
+
+      {/* Places Stream Grid */}
       {places.length === 0 ? (
         <div className="glass-card" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', width: '100%', boxSizing: 'border-box' }}>
           <MapPin size={42} color="var(--accent-rose)" style={{ margin: '0 auto 12px', display: 'block' }} />
           <h4 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '6px' }}>Nessun luogo ancora inserito</h4>
-          <p style={{ fontSize: '0.95rem' }}>Clicca sul pulsante in alto: digita es. "Colosseo" o "Duomo" ed il sistema trovera automaticamente il posto per te!</p>
+          <p style={{ fontSize: '0.95rem' }}>Digita nel riquadro in alto es. "Colosseo" o "Duomo" ed il sistema trovera automaticamente il posto per te con Google Maps!</p>
         </div>
       ) : (
         <div style={{
@@ -267,240 +442,11 @@ export default function MemoryMap() {
                     boxSizing: 'border-box'
                   }}
                 >
-                  <ExternalLink size={16} /> Apri su Google Maps 🗺️
+                  <ExternalLink size={16} /> Apri su Google Maps <span className="emoji-color">🗺️</span>
                 </a>
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Add Place Modal with Automatic Suggestions */}
-      {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 200,
-          padding: '20px'
-        }}>
-          <form onSubmit={handleAddPlace} className="glass-card" style={{
-            maxWidth: '500px',
-            width: '100%',
-            padding: '32px',
-            position: 'relative',
-            background: 'var(--bg-card)',
-            boxSizing: 'border-box'
-          }}>
-            <button
-              type="button"
-              onClick={() => setShowModal(false)}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer'
-              }}
-            >
-              <X size={24} />
-            </button>
-
-            <h3 className="font-serif" style={{ fontSize: '1.6rem', marginBottom: '6px', color: 'var(--accent-rose)' }}>
-              Cerca Luogo Automatico 🔍
-            </h3>
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              Inizia a digitare il nome del posto e seleziona il suggerimento automatico!
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Autocomplete Input */}
-              <div style={{ position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    Cerca Luogo o Indirizzo
-                  </label>
-                  <button
-                    type="button"
-                    onClick={useCurrentLocation}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--accent-blush)',
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <LocateFixed size={14} /> Usa mia posizione 📍
-                  </button>
-                </div>
-
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    placeholder="Digita es. 'Colosseo Roma', 'Duomo Milano'..."
-                    value={newPlace.cityName}
-                    onChange={(e) => handleCityInputChange(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      paddingRight: '40px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-light)',
-                      background: 'var(--bg-primary)',
-                      color: 'var(--text-primary)',
-                      fontSize: '1rem',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', right: '14px', top: '14px' }} />
-                </div>
-
-                {/* Suggestions Dropdown */}
-                {suggestions.length > 0 && (
-                  <div className="glass-card" style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    background: 'var(--bg-card)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--border-light)',
-                    borderRadius: 'var(--radius-sm)',
-                    marginTop: '6px',
-                    boxShadow: 'var(--shadow-lg)',
-                    zIndex: 10,
-                    maxHeight: '200px',
-                    overflowY: 'auto',
-                    padding: '6px'
-                  }}>
-                    {suggestions.map((sugg, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => selectSuggestion(sugg)}
-                        style={{
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontSize: '0.9rem',
-                          color: 'var(--text-primary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 77, 109, 0.12)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        <MapPin size={16} color="var(--accent-rose)" />
-                        <span>{sugg.displayName}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                  Titolo del Ricordo
-                </label>
-                <input
-                  type="text"
-                  placeholder="es. Dove ci siamo conosciuti"
-                  value={newPlace.title}
-                  onChange={(e) => setNewPlace({ ...newPlace, title: e.target.value })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-light)',
-                    background: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                  Categoria
-                </label>
-                <select
-                  value={newPlace.category}
-                  onChange={(e) => setNewPlace({ ...newPlace, category: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-light)',
-                    background: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    cursor: 'pointer',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <option value="Primo Incontro">Primo Incontro</option>
-                  <option value="Primo Bacio">Primo Bacio</option>
-                  <option value="Primo Viaggio">Primo Viaggio</option>
-                  <option value="Ristorante Preferito">Ristorante Preferito</option>
-                  <option value="Posto del Cuore">Posto del Cuore</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                  Nota o Dettagli (Opzionale)
-                </label>
-                <textarea
-                  placeholder="Scrivi qualcosa di bello su questo posto..."
-                  value={newPlace.note}
-                  onChange={(e) => setNewPlace({ ...newPlace, note: e.target.value })}
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-light)',
-                    background: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    resize: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                style={{
-                  marginTop: '10px',
-                  padding: '14px',
-                  borderRadius: 'var(--radius-full)',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, var(--accent-blush), var(--accent-rose))',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: 'var(--shadow-glow)'
-                }}
-              >
-                Salva Luogo Automatico 🗺️
-              </button>
-            </div>
-          </form>
         </div>
       )}
     </section>
