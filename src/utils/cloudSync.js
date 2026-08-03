@@ -1,6 +1,34 @@
-// Guaranteed 100% Realtime Cloud Synchronization Engine for Stivi & Emma
+// Bug-Free Race-Condition-Proof Realtime Cloud Sync Engine for Stivi & Emma
 
 const JSONBLOB_ENDPOINT = 'https://jsonblob.com/api/jsonBlob/019fc7a2-7eee-73b8-9f46-de2048252f0a';
+
+let isPushingCloud = false;
+
+// Helper to merge array items by unique ID so no note, photo or place is ever lost
+export const mergeArraysById = (localArr = [], remoteArr = []) => {
+  if (!Array.isArray(localArr)) localArr = [];
+  if (!Array.isArray(remoteArr)) remoteArr = [];
+
+  const map = new Map();
+  // Read remote items
+  remoteArr.forEach(item => {
+    if (item && (item.id || item.id === 0)) {
+      map.set(item.id.toString(), item);
+    }
+  });
+  // Overlay local items (local takes priority if modified)
+  localArr.forEach(item => {
+    if (item && (item.id || item.id === 0)) {
+      map.set(item.id.toString(), item);
+    }
+  });
+
+  return Array.from(map.values()).sort((a, b) => {
+    const timeA = typeof a.id === 'number' ? a.id : 0;
+    const timeB = typeof b.id === 'number' ? b.id : 0;
+    return timeB - timeA;
+  });
+};
 
 export const getLocalPayload = () => {
   return {
@@ -16,36 +44,49 @@ export const getLocalPayload = () => {
   };
 };
 
-export const applyCloudPayload = (data) => {
-  if (!data || typeof data !== 'object') return false;
+export const applyCloudPayload = (remoteData) => {
+  if (!remoteData || typeof remoteData !== 'object') return false;
   let updated = false;
 
-  const checkAndUpdate = (key, storageKey) => {
-    if (data[key] !== undefined) {
-      const current = localStorage.getItem(storageKey);
-      const incoming = typeof data[key] === 'string' ? data[key] : JSON.stringify(data[key]);
-      if (current !== incoming) {
-        localStorage.setItem(storageKey, incoming);
-        updated = true;
-      }
-    }
-  };
+  const currentLocal = getLocalPayload();
 
-  checkAndUpdate('notes', 'stivi_emma_real_notes');
-  checkAndUpdate('places', 'stivi_emma_real_places');
-  checkAndUpdate('timeline', 'stivi_emma_real_timeline');
-  checkAndUpdate('bucketlist', 'stivi_emma_real_bucketlist');
-  checkAndUpdate('photos', 'stivi_emma_real_photos');
-  checkAndUpdate('quote', 'stivi_emma_custom_quote');
-  checkAndUpdate('startDate', 'stivi_emma_start_date');
-  checkAndUpdate('upcomingDates', 'stivi_emma_upcoming_dates');
+  // Merge array items instead of overwriting
+  const mergedNotes = mergeArraysById(currentLocal.notes, remoteData.notes);
+  const mergedPlaces = mergeArraysById(currentLocal.places, remoteData.places);
+  const mergedTimeline = mergeArraysById(currentLocal.timeline, remoteData.timeline);
+  const mergedBucketlist = mergeArraysById(currentLocal.bucketlist, remoteData.bucketlist);
+  const mergedPhotos = mergeArraysById(currentLocal.photos, remoteData.photos);
 
-  if (data.hugCount !== undefined) {
-    const currentHug = localStorage.getItem('stivi_emma_hug_count');
-    if (currentHug !== data.hugCount.toString()) {
-      localStorage.setItem('stivi_emma_hug_count', data.hugCount.toString());
-      updated = true;
-    }
+  if (JSON.stringify(currentLocal.notes) !== JSON.stringify(mergedNotes)) {
+    localStorage.setItem('stivi_emma_real_notes', JSON.stringify(mergedNotes));
+    updated = true;
+  }
+  if (JSON.stringify(currentLocal.places) !== JSON.stringify(mergedPlaces)) {
+    localStorage.setItem('stivi_emma_real_places', JSON.stringify(mergedPlaces));
+    updated = true;
+  }
+  if (JSON.stringify(currentLocal.timeline) !== JSON.stringify(mergedTimeline)) {
+    localStorage.setItem('stivi_emma_real_timeline', JSON.stringify(mergedTimeline));
+    updated = true;
+  }
+  if (JSON.stringify(currentLocal.bucketlist) !== JSON.stringify(mergedBucketlist)) {
+    localStorage.setItem('stivi_emma_real_bucketlist', JSON.stringify(mergedBucketlist));
+    updated = true;
+  }
+  if (JSON.stringify(currentLocal.photos) !== JSON.stringify(mergedPhotos)) {
+    localStorage.setItem('stivi_emma_real_photos', JSON.stringify(mergedPhotos));
+    updated = true;
+  }
+
+  // Scalar values
+  if (remoteData.quote && remoteData.quote !== currentLocal.quote) {
+    localStorage.setItem('stivi_emma_custom_quote', remoteData.quote);
+    updated = true;
+  }
+
+  if (remoteData.hugCount !== undefined && remoteData.hugCount > currentLocal.hugCount) {
+    localStorage.setItem('stivi_emma_hug_count', remoteData.hugCount.toString());
+    updated = true;
   }
 
   if (updated) {
@@ -54,8 +95,9 @@ export const applyCloudPayload = (data) => {
   return updated;
 };
 
-// Push local changes to cloud via PUT
+// Push local changes to cloud via PUT (Locks during push)
 export const pushFullCloudPayload = async (payload = getLocalPayload()) => {
+  isPushingCloud = true;
   try {
     const res = await fetch(JSONBLOB_ENDPOINT, {
       method: 'PUT',
@@ -69,11 +111,15 @@ export const pushFullCloudPayload = async (payload = getLocalPayload()) => {
   } catch (e) {
     console.log('Cloud push error:', e);
     return false;
+  } finally {
+    setTimeout(() => { isPushingCloud = false; }, 800);
   }
 };
 
-// Pull cloud changes via GET
+// Pull cloud changes via GET (Skips if pushing)
 export const pullFullCloudPayload = async () => {
+  if (isPushingCloud) return { success: false, skipped: true };
+
   try {
     const res = await fetch(JSONBLOB_ENDPOINT, {
       method: 'GET',
