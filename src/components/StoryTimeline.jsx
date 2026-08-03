@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, MapPin, Calendar, Plus, X, Sparkles, Trash2 } from 'lucide-react';
+import { saveAndSyncCloud } from '../utils/cloudSync';
 
 export default function StoryTimeline() {
   const [timelineItems, setTimelineItems] = useState(() => {
@@ -22,7 +23,7 @@ export default function StoryTimeline() {
     localStorage.setItem('stivi_emma_real_timeline', JSON.stringify(timelineItems));
   }, [timelineItems]);
 
-  const handleAddTimelineItem = (e) => {
+  const handleAddTimelineItem = async (e) => {
     e.preventDefault();
     if (!newItem.title || !newItem.description) return;
 
@@ -31,17 +32,22 @@ export default function StoryTimeline() {
       ...newItem
     };
 
-    setTimelineItems([itemToAdd, ...timelineItems]);
+    const updated = [itemToAdd, ...timelineItems];
+    setTimelineItems(updated);
     setNewItem({ title: '', date: '', location: '', description: '', tag: 'Ricordo Reale' });
     setShowAddModal(false);
+
+    await saveAndSyncCloud('stivi_emma_real_timeline', updated);
   };
 
-  const deleteItem = (id, e) => {
+  const deleteItem = async (id, e) => {
     if (e) e.stopPropagation();
-    setTimelineItems(timelineItems.filter(item => item.id !== id));
+    const updated = timelineItems.filter(item => item.id !== id);
+    setTimelineItems(updated);
     if (selectedItem && selectedItem.id === id) {
       setSelectedItem(null);
     }
+    await saveAndSyncCloud('stivi_emma_real_timeline', updated);
   };
 
   return (
@@ -56,13 +62,13 @@ export default function StoryTimeline() {
           fontSize: '0.9rem',
           marginBottom: '8px'
         }}>
-          <Sparkles size={16} /> I Vostri Ricordi Veri
+          <Sparkles size={16} /> I Vostri Ricordi Veri Sincronizzati ☁️
         </div>
         <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>
           <span className="gradient-text font-serif">La Nostra Storia Reale</span> <span className="emoji-color">📖💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
-          Inserisci le tappe ed i momenti reali che avete vissuto insieme.
+          Inserisci le tappe ed i momenti reali: compaiono in automatico su tutti i dispositivi!
         </p>
 
         <button
@@ -293,7 +299,7 @@ export default function StoryTimeline() {
                   cursor: 'pointer'
                 }}
               >
-                Salva Ricordo Reale 💖
+                Salva & Sincronizza Ricordo 💖☁️
               </button>
             </div>
           </form>

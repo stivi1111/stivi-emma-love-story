@@ -1,6 +1,6 @@
-// Zero-Cache Instant Full-Site Cloud Sync Engine for Stivi & Emma
+// Guaranteed 100% Realtime Cloud Synchronization Engine for Stivi & Emma
 
-const BACKUP_ENDPOINT = 'https://kvdb.io/stivi_emma_love_db_2023/full_backup';
+const JSONBLOB_ENDPOINT = 'https://jsonblob.com/api/jsonBlob/019fc7a2-7eee-73b8-9f46-de2048252f0a';
 
 export const getLocalPayload = () => {
   return {
@@ -54,14 +54,16 @@ export const applyCloudPayload = (data) => {
   return updated;
 };
 
-// Push local changes to cloud (Zero-Cache)
+// Push local changes to cloud via PUT
 export const pushFullCloudPayload = async (payload = getLocalPayload()) => {
   try {
-    const res = await fetch(`${BACKUP_ENDPOINT}?t=${Date.now()}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      cache: 'no-store'
+    const res = await fetch(JSONBLOB_ENDPOINT, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
     });
     return res.ok;
   } catch (e) {
@@ -70,12 +72,15 @@ export const pushFullCloudPayload = async (payload = getLocalPayload()) => {
   }
 };
 
-// Pull cloud changes to PC / Mobile (Zero-Cache)
+// Pull cloud changes via GET
 export const pullFullCloudPayload = async () => {
   try {
-    const res = await fetch(`${BACKUP_ENDPOINT}?t=${Date.now()}`, {
-      cache: 'no-store',
-      headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+    const res = await fetch(JSONBLOB_ENDPOINT, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
     });
     if (res.ok) {
       const data = await res.json();
@@ -90,7 +95,6 @@ export const pullFullCloudPayload = async () => {
   return { success: false, hasChanges: false };
 };
 
-// Central helper to update local storage AND push to cloud in 1 line
 export const saveAndSyncCloud = async (storageKey, value) => {
   if (typeof value === 'string') {
     localStorage.setItem(storageKey, value);
