@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { CheckCircle2, Circle, Plus, Sparkles, Trophy, Trash2 } from 'lucide-react';
+import { pushFullCloudPayload } from '../utils/cloudSync';
 
 export default function BucketList() {
   const [items, setItems] = useState(() => {
@@ -14,8 +15,8 @@ export default function BucketList() {
     localStorage.setItem('stivi_emma_real_bucketlist', JSON.stringify(items));
   }, [items]);
 
-  const toggleItem = (id) => {
-    setItems(items.map(item => {
+  const toggleItem = async (id) => {
+    const updated = items.map(item => {
       if (item.id === id) {
         const nextState = !item.completed;
         if (nextState) {
@@ -29,15 +30,22 @@ export default function BucketList() {
         return { ...item, completed: nextState };
       }
       return item;
-    }));
+    });
+
+    setItems(updated);
+    localStorage.setItem('stivi_emma_real_bucketlist', JSON.stringify(updated));
+    await pushFullCloudPayload();
   };
 
-  const deleteItem = (id, e) => {
+  const deleteItem = async (id, e) => {
     if (e) e.stopPropagation();
-    setItems(items.filter(i => i.id !== id));
+    const updated = items.filter(i => i.id !== id);
+    setItems(updated);
+    localStorage.setItem('stivi_emma_real_bucketlist', JSON.stringify(updated));
+    await pushFullCloudPayload();
   };
 
-  const handleAddItem = (e) => {
+  const handleAddItem = async (e) => {
     e.preventDefault();
     if (!newItemText.trim()) return;
 
@@ -47,8 +55,12 @@ export default function BucketList() {
       completed: false
     };
 
-    setItems([...items, newItem]);
+    const updated = [...items, newItem];
+    setItems(updated);
+    localStorage.setItem('stivi_emma_real_bucketlist', JSON.stringify(updated));
     setNewItemText('');
+
+    await pushFullCloudPayload();
   };
 
   const completedCount = items.filter(i => i.completed).length;
@@ -66,13 +78,13 @@ export default function BucketList() {
           fontSize: '0.9rem',
           marginBottom: '8px'
         }}>
-          <Sparkles size={16} /> I Vostri Sogni Reali
+          <Sparkles size={16} /> I Vostri Sogni Reali Sincronizzati ☁️
         </div>
         <h2 style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 700 }}>
           <span className="gradient-text font-serif">Bucket List di Coppia</span> <span className="emoji-color">✈️💖</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
-          Inserite tutte le avventure e le esperienze reali che volete realizzare insieme.
+          Inserite le vostre avventure: si sincronizzano all'istante su PC, iPhone ed Android!
         </p>
       </div>
 
@@ -157,7 +169,7 @@ export default function BucketList() {
             boxSizing: 'border-box'
           }}
         >
-          <Plus size={18} /> Aggiungi Sogno
+          <Plus size={18} /> Salva & Sincronizza ☁️
         </button>
       </form>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Sparkles, X, Trash2, Navigation, ExternalLink, Search, LocateFixed, Map as MapIcon } from 'lucide-react';
+import { pushFullCloudPayload } from '../utils/cloudSync';
 
 export default function MemoryMap() {
   const [places, setPlaces] = useState(() => {
@@ -23,7 +24,6 @@ export default function MemoryMap() {
     localStorage.setItem('stivi_emma_real_places', JSON.stringify(places));
   }, [places]);
 
-  // Live Autocomplete search using Photon Geocoding API (Returns exact lat & lon!)
   const handleCityInputChange = async (val) => {
     setNewPlace(prev => ({ ...prev, cityName: val }));
 
@@ -67,7 +67,6 @@ export default function MemoryMap() {
     setSuggestions([]);
   };
 
-  // Find Current GPS Location
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert("La geolocalizzazione non è supportata dal tuo browser");
@@ -105,7 +104,7 @@ export default function MemoryMap() {
     });
   };
 
-  const handleAddPlace = (e) => {
+  const handleAddPlace = async (e) => {
     e.preventDefault();
     if (!newPlace.title || !newPlace.cityName) return;
 
@@ -114,7 +113,6 @@ export default function MemoryMap() {
     const lat = newPlace.lat || 41.8902;
     const lon = newPlace.lon || 12.4922;
 
-    // OpenStreetMap Embed URL (100% Free, Cross-Origin Allowed, Never Blocked on PC/Mac/iPhone!)
     const bbox = `${lon - 0.01}%2C${lat - 0.01}%2C${lon + 0.01}%2C${lat + 0.01}`;
     const openStreetMapEmbed = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`;
 
@@ -131,13 +129,21 @@ export default function MemoryMap() {
       embedUrl: openStreetMapEmbed
     };
 
-    setPlaces([item, ...places]);
+    const updated = [item, ...places];
+    setPlaces(updated);
+    localStorage.setItem('stivi_emma_real_places', JSON.stringify(updated));
     setNewPlace({ title: '', cityName: '', category: 'Primo Incontro', note: '', lat: 41.8902, lon: 12.4922 });
     setSuggestions([]);
+
+    // Push to cloud
+    await pushFullCloudPayload();
   };
 
-  const deletePlace = (id) => {
-    setPlaces(places.filter(p => p.id !== id));
+  const deletePlace = async (id) => {
+    const updated = places.filter(p => p.id !== id);
+    setPlaces(updated);
+    localStorage.setItem('stivi_emma_real_places', JSON.stringify(updated));
+    await pushFullCloudPayload();
   };
 
   return (
@@ -153,13 +159,13 @@ export default function MemoryMap() {
           fontSize: '0.9rem',
           marginBottom: '8px'
         }}>
-          <Sparkles size={16} /> Mappa Universale 100% Garantita (PC, Mac, iPhone & Android)
+          <Sparkles size={16} /> Mappa delle Emozioni & Mappe Sincronizzate
         </div>
         <h2 style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 700 }}>
           <span className="gradient-text font-serif">I Luoghi del Nostro Cuore</span> <span className="emoji-color">🗺️📍</span>
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0' }}>
-          Mappa interattiva senza blocchi! Funziona su qualsiasi computer, iPhone o telefono Android.
+          Mappa interattiva senza blocchi! Si sincronizza in automatico su PC, iPhone ed Android.
         </p>
       </div>
 
@@ -356,7 +362,7 @@ export default function MemoryMap() {
               gap: '8px'
             }}
           >
-            <Plus size={18} /> Salva Luogo sulla Mappa <span className="emoji-color">🗺️</span>
+            <Plus size={18} /> Salva & Sincronizza Luogo <span className="emoji-color">🗺️☁️</span>
           </button>
         </form>
       </div>
@@ -401,7 +407,6 @@ export default function MemoryMap() {
                 <Trash2 size={16} />
               </button>
 
-              {/* Universal Interactive Map Frame (OpenStreetMap - 100% Guaranteed cross-origin embed) */}
               <div style={{ position: 'relative', width: '100%', height: '190px', background: '#e5e3df' }}>
                 <iframe
                   title={place.title}
@@ -444,7 +449,6 @@ export default function MemoryMap() {
                   </p>
                 )}
 
-                {/* Direct Google Maps & Apple Maps Navigation Buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <a
                     href={place.mapsUrl}

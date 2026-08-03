@@ -12,7 +12,7 @@ import LoveNotes from './components/LoveNotes';
 import BucketList from './components/BucketList';
 import FloatingHearts from './components/FloatingHearts';
 import Footer from './components/Footer';
-import { pullFromCloud } from './utils/cloudSync';
+import { pullFullCloudPayload } from './utils/cloudSync';
 
 export default function App() {
   const [theme, setTheme] = useState(() => {
@@ -23,6 +23,8 @@ export default function App() {
     return localStorage.getItem('stivi_emma_start_date') || '2023-04-27';
   });
 
+  const [syncVersion, setSyncVersion] = useState(0);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('stivi_emma_theme', theme);
@@ -32,12 +34,27 @@ export default function App() {
     localStorage.setItem('stivi_emma_start_date', startDate);
   }, [startDate]);
 
-  // Global Auto Cloud Pull on App Startup across PC & Mobile
+  // Global Automatic Realtime Cloud Sync across PC, iPhone & Android (Polls every 4s)
   useEffect(() => {
-    const syncOnStart = async () => {
-      await pullFromCloud();
+    const handleSync = async () => {
+      await pullFullCloudPayload();
     };
-    syncOnStart();
+
+    handleSync();
+    const interval = setInterval(handleSync, 4000);
+
+    const handleCloudEvent = () => {
+      setSyncVersion(v => v + 1);
+      const newStart = localStorage.getItem('stivi_emma_start_date');
+      if (newStart) setStartDate(newStart);
+    };
+
+    window.addEventListener('stivi_emma_cloud_synced', handleCloudEvent);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('stivi_emma_cloud_synced', handleCloudEvent);
+    };
   }, []);
 
   const toggleTheme = () => {
@@ -45,7 +62,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', position: 'relative', overflowX: 'hidden' }}>
+    <div key={syncVersion} style={{ minHeight: '100vh', position: 'relative', overflowX: 'hidden' }}>
       <FloatingHearts />
       <Navbar theme={theme} toggleTheme={toggleTheme} />
       <main>
